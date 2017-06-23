@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <math.h>
 
 #include "RayPolygon.h"
 
@@ -14,18 +15,41 @@ int maxN(Vector N);
 int abs(int);
 
 int main(int argc, char **argv){
+    FILE* fp;
+    char magicNumStr[2];
+    int height, width;
+    //sed '2,$s/\s//g' simple.bpm |tr -d "\n" > test.smaller.pbm
+        //and then go in and and new lines to the header 
+    fp = fopen("test.smaller.pbm", "r");
+    if(fp == NULL){
+        printf("Error reading file\n");
+        exit(1);
+    }
+    fscanf(fp, "%s", magicNumStr);
+    /* printf("%s\n", magicNumStr); */
+    if(strcmp(magicNumStr, "P1")!=0){
+        printf("Needs to be pbm\n");
+        exit(2);
+    }
+
+    fscanf(fp, "%i %i\n",&height, &width );
+    /* printf("%i %i\n", height, width); */
+    char *imgArr = malloc(sizeof(char)*height*(width));
+    fread(imgArr, sizeof(char)*(width), (height), fp);
+    /* printf("%c\n", imgArr[115*(width)+5]); */
+    //arr[i*width+j]
+    int maxOutSide = 500;
+    char *outArr = malloc(sizeof(char)*maxOutSide*maxOutSide);
+
+
+
     double t;
     bool intersects;
     int i_s[2];
-    struct Ray ray = {
-        {0,0,0},
-        {0.5, 1, 1.25}
-    };
-
     Point verts[3]= {
-        {0,1,0},
-        {1,1,0},
-        {1,1,1}
+        {0,20,0},
+        {200,20,0},
+        {200,20,200}
     };
 
     struct Polygon poly = {
@@ -33,17 +57,63 @@ int main(int argc, char **argv){
         false,
         verts
     };
+    Point endPoint = {50,50,50};
+    struct Ray ray;
 
-    t = findT(verts, poly, ray, i_s);
-    printf("%f\n", t);
-    if(t<=0){
-        //either error or intersection behind origin, reject
-        return 0;
-    } 
-    printf("i_1: %i, i_2:%i\n", i_s[0], i_s[1]);
+    //everything in pixel width
+    /* printf("x: %i, y: %i\n", width, height); */
+    for(int i = 0; i<height;i++){
+        for(int j = 0; j<width;j++){
+            if(imgArr[i*width+j] == '1'){
+                ray.O[0] = j;//x
+                ray.O[1] = i;//y
+                ray.O[2] = 0;//z
+                pointSub(ray.O, endPoint, &ray.D);
+                /* printf("-----\n"); */
+                /* printVector(ray.O); */
+                /* printVector(endPoint); */
+                /* printVector(ray.D); */
+               
+                t = findT(verts, poly, ray, i_s);
+                /* printf("%f\n", t); */
+                if(t<=0){
+                    //either error or intersection behind origin, reject
+                    /* printf("t<=0\n"); */
+                    continue;
+                } 
+                /* printf("-----\n"); */
+                /* printf("i_1: %i, i_2:%i\n", i_s[0], i_s[1]); */
 
-    intersects = intersect(poly, ray, t, i_s[0], i_s[1]);
-    printf("%d\n", intersects);
+                intersects = intersect(poly, ray, t, i_s[0], i_s[1]);
+                /* printf("---\n"); */
+                /* printf("%d\n", intersects); */
+                /* printVector(ray.P); */
+                /* printf("---\n"); */
+                if(intersects == 1){
+                    ray.P[0] = ray.O[0] + ray.D[0] * t;
+                    ray.P[1] = ray.O[1] + ray.D[1] * t;
+                    ray.P[2] = ray.O[2] + ray.D[2] * t;
+
+                    if(ray.P[0]< maxOutSide && ray.P[0]>=0 && ray.P[1]< maxOutSide && ray.P[1]>=0){
+                        outArr[(int)(ray.P[0]*maxOutSide+ray.P[1])] = 1;
+                    }
+                }
+            }
+        }
+    }
+    /* printf("\n\n\n"); */
+    printf("P1\n%i %i\n", maxOutSide, maxOutSide);
+    for(int i = 0; i<maxOutSide;i++){
+        for(int j = 0; j<maxOutSide;j++){
+            printf("%i ", outArr[i*maxOutSide+j]);
+        }
+        printf("\n");
+    }
+
+    free(imgArr);
+    free(outArr);
+    fclose(fp);
+
 }
 double findT(Point *verts, struct Polygon poly, struct Ray ray, int *i_s){
     Vector v0v1, v0v2, N;
@@ -57,13 +127,13 @@ double findT(Point *verts, struct Polygon poly, struct Ray ray, int *i_s){
     d = vectorDot(verts[0], N);
     d = -1*d;
 
-    printf("d: %f\n", d);
-    printf("N: ");
-    printVector(N);
-    printf("ray.O ");
-    printVector(ray.O);
-    printf("ray.D ");
-    printVector(ray.D);
+    /* printf("d: %f\n", d); */
+    /* printf("N: "); */
+    /* printVector(N); */
+    /* printf("ray.O "); */
+    /* printVector(ray.O); */
+    /* printf("ray.D "); */
+    /* printVector(ray.D); */
 
     N_dot_D = vectorDot(N, ray.D);
     if(N_dot_D == 0){
@@ -71,7 +141,7 @@ double findT(Point *verts, struct Polygon poly, struct Ray ray, int *i_s){
     }
     t = -1*(d+vectorDot(N, ray.O))/(vectorDot(N, ray.D));
 
-    printf("N_S: %f, %f, %f\n", N[0], N[1], N[2]);
+    /* printf("N_S: %f, %f, %f\n", N[0], N[1], N[2]); */
     maxOfN = maxN(N);
     if(N[0] == maxOfN){
         i_s[0] = 1;

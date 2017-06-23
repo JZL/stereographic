@@ -30,7 +30,7 @@ bool intersect(struct Polygon poly, struct Ray ray, float t, int i1, int i2) {
 	P[0] = ray.O[0] + ray.D[0] * t;
 	P[1] = ray.O[1] + ray.D[1] * t;
 	P[2] = ray.O[2] + ray.D[2] * t;
-    printf("Points at 'intersection': %f, %f, %f\n", P[0], P[1], P[2]);
+    /* printf("Points at 'intersection': %f, %f, %f\n", P[0], P[1], P[2]); */
 	u0 = P[i1] - V[0][i1]; v0 = P[i2] - V[0][i2];
 	inter = false; i = 2;
 	do {
@@ -56,6 +56,7 @@ bool intersect(struct Polygon poly, struct Ray ray, float t, int i1, int i2) {
 
 	if (inter) {
 		/* Storing the intersection point. */
+        /* printf("P: %f, %f, %f\n", P[0], P[1], P[2]); */
 		ray.P[0] = P[0]; ray.P[1] = P[1]; ray.P[2] = P[2];
 		/* the normal vector can be interpolated now or later. */
 		if (poly.interpolate) {
