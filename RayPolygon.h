@@ -15,4 +15,4 @@ struct Polygon {
 
 };
 
-bool intersect(struct Polygon poly, struct Ray ray, float t, int i1, int i2);
+bool intersect(struct Polygon *poly, struct Ray *ray, float t, int i1, int i2, int v);
