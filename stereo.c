@@ -16,7 +16,8 @@ int abs(int);
 void normalize(Vector);
 void distPoints(Point *a, Point *b);
 void project(Point *p, Vector N);
-int v = 0;
+void newCoord(struct Polygon poly, Point *P);
+int v = 1;
 
 int main(int argc, char **argv){
     FILE *fp;
@@ -31,6 +32,10 @@ int main(int argc, char **argv){
     if(fp == NULL){
         printf("Error reading file\n");
         exit(1);
+    }
+    writeFile = fopen("out.pgm", "w");
+    if(writeFile == NULL){
+        printf("couldn't write to file");
     }
     fscanf(fp, "%s", magicNumStr);
     /* printf("%s\n", magicNumStr); */
@@ -88,7 +93,7 @@ int main(int argc, char **argv){
 
     //everything in pixel width
     /* printf("x: %i, y: %i\n", width, height); */
-    for(int i = gggg0; i<yimg;i++){
+    for(int i = 0; i<yimg;i++){
         for(int j = 0; j<ximg;j++){
             //todo
             if(imgArr[j*ximg+i] == '1'){
@@ -124,7 +129,8 @@ int main(int argc, char **argv){
 
                 if(!v) printVector(ray.P, "rayPB");
                 //distPoints(&(verts[0]), &ray.P);
-                project(&ray.P, N);
+                //newCoord(poly, &ray.P);
+            fprintf(writeFile, "%f,%f,%f\n", ray.P[0], ray.P[1], ray.P[2] );
                 if(!v) printVector(ray.P, "rayPA");
                 if(!v) printf("intersects? %d\n", intersects);
                 if(ray.P[0]< maxOutSide && ray.P[0]>=0 && ray.P[1]< maxOutSide && ray.P[1]>=0){
@@ -156,16 +162,12 @@ int main(int argc, char **argv){
         }
     }
     /* printf("\n\n\n"); */
-    writeFile = fopen("out.pgm", "w");
-    if(writeFile == NULL){
-        printf("couldn't write to file");
-    }
-    fprintf(writeFile, "P2\n%i %i\n2\n", maxOutSide, maxOutSide);
+    //fprintf(writeFile, "P2\n%i %i\n2\n", maxOutSide, maxOutSide);
     for(int i = 0; i<maxOutSide;i++){
         for(int j = 0; j<maxOutSide;j++){
             /* printf("i: %i, j: %i, maxOutSide: %i\n", i, j, maxOutSide); */
             //printf("%i ", outArr[i*(maxOutSide)+j]);
-            fprintf(writeFile, "%i ", outArr[i*(maxOutSide)+j]);
+            //fprintf(writeFile, "%i ", outArr[i*(maxOutSide)+j]);
             /* fflush(stdout); */
         }
         //printf("\n");
@@ -280,9 +282,21 @@ void distPoints(Point *a, Point *b){
 void project(Point *P, Vector N){
     //(x, y, z) - (x*nx + y*ny + z*nz) (nx, ny, nz)
     double scalarProj = vectorDot(*P, N);
-    if(!v)printf("scalarProj: %d\n", scalarProj);
+    if(!v)printf("scalarProj: %f\n", scalarProj);
     if(!v)printVector(N, "N");
     (*P)[0] = (*P)[0]-scalarProj*N[0];
     (*P)[1] = (*P)[1]-scalarProj*N[1];
     (*P)[2] = (*P)[2]-scalarProj*N[2];
+}
+void newCoord(struct Polygon poly, Point *P){
+    Point V2V0, V1V0, xAxis, yAxis;
+    double xMultiplier;
+
+    pointSub(poly.V[0], poly.V[2], &V2V0);
+    normalize(V2V0);
+    (*P)[0] = vectorDot(*P,  V2V0);
+
+    pointSub(poly.V[0], poly.V[1], &V1V0);
+    normalize(V1V0);
+    (*P)[1] = vectorDot(*P,  V1V0);
 }
