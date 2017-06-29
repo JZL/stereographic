@@ -16,8 +16,9 @@ int abs(int);
 void normalize(Vector);
 void distPoints(Point *a, Point *b);
 void project(Point *p, Vector N);
-void newCoord(struct Polygon poly, Point *P);
-int v = 1;
+void newCoord(struct Polygon poly, Point *P, Vector N);
+void findCLeftI(int C[][2], int CLeftI[][3]);
+int v = 0;
 
 int main(int argc, char **argv){
     FILE *fp;
@@ -91,6 +92,25 @@ int main(int argc, char **argv){
 
     vectorCross(v0v1, v0v2, &N);
 
+    normalize(v0v1);
+    normalize(N);
+
+    int C[3][2];
+    int CLeftI[3][3];
+    C[0][0] =v0v1[0]; 
+    C[1][0] =v0v1[1]; 
+    C[2][0] =v0v1[2]; 
+
+    C[0][0] =N[0]; 
+    C[1][1] =N[1]; 
+    C[2][2] =N[2]; 
+
+    findCLeftI(C, CLeftI);
+    
+
+
+
+
     //everything in pixel width
     /* printf("x: %i, y: %i\n", width, height); */
     for(int i = 0; i<yimg;i++){
@@ -106,7 +126,9 @@ int main(int argc, char **argv){
                 /* endPoint[2] = 21; */
 
                 pointSub(ray.O, endPoint, &ray.D);
+                if(!v)printf("rayDlengthB: %f\n", (ray.D[0]*ray.D[0]+ray.D[1]*ray.D[1]+ray.D[2]*ray.D[2]));
                 normalize(ray.D);
+                if(!v)printf("rayDlengthA: %f\n", (ray.D[0]*ray.D[0]+ray.D[1]*ray.D[1]+ray.D[2]*ray.D[2]));
                 if(!v){
                     printf("-----\n");
                     printVector(ray.O, "O  ");
@@ -129,8 +151,8 @@ int main(int argc, char **argv){
 
                 if(!v) printVector(ray.P, "rayPB");
                 //distPoints(&(verts[0]), &ray.P);
-                //newCoord(poly, &ray.P);
-            fprintf(writeFile, "%f,%f,%f\n", ray.P[0], ray.P[1], ray.P[2] );
+                newCoord(poly, &ray.P, N);
+                if(v==3)fprintf(writeFile, "%f,%f,%f\n", ray.P[0], ray.P[1], ray.P[2] );
                 if(!v) printVector(ray.P, "rayPA");
                 if(!v) printf("intersects? %d\n", intersects);
                 if(ray.P[0]< maxOutSide && ray.P[0]>=0 && ray.P[1]< maxOutSide && ray.P[1]>=0){
@@ -162,12 +184,12 @@ int main(int argc, char **argv){
         }
     }
     /* printf("\n\n\n"); */
-    //fprintf(writeFile, "P2\n%i %i\n2\n", maxOutSide, maxOutSide);
+    fprintf(writeFile, "P2\n%i %i\n2\n", maxOutSide, maxOutSide);
     for(int i = 0; i<maxOutSide;i++){
         for(int j = 0; j<maxOutSide;j++){
             /* printf("i: %i, j: %i, maxOutSide: %i\n", i, j, maxOutSide); */
             //printf("%i ", outArr[i*(maxOutSide)+j]);
-            //fprintf(writeFile, "%i ", outArr[i*(maxOutSide)+j]);
+            fprintf(writeFile, "%i ", outArr[i*(maxOutSide)+j]);
             /* fflush(stdout); */
         }
         //printf("\n");
@@ -288,15 +310,32 @@ void project(Point *P, Vector N){
     (*P)[1] = (*P)[1]-scalarProj*N[1];
     (*P)[2] = (*P)[2]-scalarProj*N[2];
 }
-void newCoord(struct Polygon poly, Point *P){
-    Point V2V0, V1V0, xAxis, yAxis;
-    double xMultiplier;
+void newCoord(struct Polygon poly, Point *P, Vector N){
+    Vector V0V1, lastAxis;
 
-    pointSub(poly.V[0], poly.V[2], &V2V0);
-    normalize(V2V0);
-    (*P)[0] = vectorDot(*P,  V2V0);
+    pointSub(poly.V[0], poly.V[1], &V0V1);
+    normalize(V0V1);
 
-    pointSub(poly.V[0], poly.V[1], &V1V0);
-    normalize(V1V0);
-    (*P)[1] = vectorDot(*P,  V1V0);
+    vectorCross(N, V0V1, &lastAxis);
+    normalize(lastAxis);
+
+    (*P)[0] = vectorDot(*P,  V0V1);
+    (*P)[1] = vectorDot(*P,  lastAxis);
+}
+
+findCLeftI(int C[][2], int CLeftI[][3]){
+   double det;
+   det = (1/(C[0][0]*C[2][1]-C[0][1]*C[2][0]));
+   if(det == 0){
+    det = (1/(C[0][0]*C[1][1]-C[0][1]*C[1][0]));
+    if(det == 0){
+        printf("Can't find det");
+        exit(1);
+    }
+   }
+   det = 1/det;
+   CLeftI[0][0] = C[2][1]*det;
+   CLeftI[0][1] = -1*C[0][1]*det;
+   CLeftI[1][0] = -1*C[2][0]*det;
+   CLeftI[1][1] = C[0][0]*det;
 }
