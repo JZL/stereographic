@@ -19,8 +19,8 @@ void project(Point *p, Vector N);
 void newCoord(struct Polygon poly, Point *P, Vector N);
 void findCLeftI(int C[][2], int CLeftI[][3]);
 void checkThatLeftInverse(int C[][2], int CleftI[][3]);
-void changeBasis(Point a, int CLeftI[][3]);
-int v = 0;
+void changeBasis(Point *a, int CLeftI[][3]);
+int v = 1;
 
 int main(int argc, char **argv){
     FILE *fp;
@@ -28,6 +28,10 @@ int main(int argc, char **argv){
     char magicNumStr[2];
     int yimg, ximg;
     Vector N;
+    if(argc >1){
+        v = strtol(argv[1], NULL, 10);
+        printf("new v: %i\n", v);
+    }
     //sed '2,$s/\s//g' simple.bpm |tr -d "\n" > test.smaller.pbm
     //and then go in and and new lines to the header 
     fp = fopen("test.smaller.pbm", "r");
@@ -53,11 +57,11 @@ int main(int argc, char **argv){
     fread(imgArr, sizeof(int)*(ximg), (yimg), fp);
     /* printf("%c\n", imgArr[115*(width)+5]); */
     //arr[i*width+j]
-    int maxOutSide = 500;
+    int maxOutSide = 1000;
     int *outArr = malloc(sizeof(int)*maxOutSide*maxOutSide);
     for(int i = 0; i<maxOutSide;i++){
         for(int j = 0; j<maxOutSide;j++){
-            outArr[j*(maxOutSide)+i] = 0;
+            outArr[j*(maxOutSide)+i] = 2;
         }
     }
 
@@ -68,11 +72,17 @@ int main(int argc, char **argv){
     int i_s[2];
     //CHANGE POLY ATTR BELOW
     Point verts[3]= {
-        {ximg, 0, 0},
-        {ximg, yimg, 0},
-        {ximg, 0, 100},
+        {ximg*1.5, 0, 0},
+        {ximg*1.5, yimg*1.5, 0},
+        {ximg*1.5, 0, ximg*1.5},
     };
-    Point endPoint = {(int)ximg*5, (int)yimg*5, (int)ximg*.5};
+    Point endPoint = {(int)ximg*2, (int)yimg*1, (int)ximg*.5};
+    /* Point verts[3]= { */
+    /*     {0, 0, 20}, */
+    /*     {ximg, 0, 20}, */
+    /*     {ximg, yimg, 20}, */
+    /* }; */
+    /* Point endPoint = {(int)ximg*.5, (int)yimg*.5, 500}; */
     /*
     Point verts[3]= {
         {,0, 0},
@@ -88,14 +98,23 @@ int main(int argc, char **argv){
     };
     struct Ray ray;
 
-    Vector v0v1, v0v2;
+    Vector v0v1, v0v2, secondAxis;
     pointSub(verts[0], verts[1], &v0v1);
     pointSub(verts[0], verts[2], &v0v2);
 
     vectorCross(v0v1, v0v2, &N);
 
+    printVector(v0v1, "v0v1");
     normalize(v0v1);
+    printVector(v0v1, "v0v1Norm");
+    printVector(N, "N");
     normalize(N);
+    printVector(N, "NNorm");
+
+    vectorCross(v0v1, N, &secondAxis);
+    printVector(secondAxis, "secondAxis");
+    normalize(secondAxis);
+    printVector(secondAxis, "secondAxisNorm");
 
     int C[3][2];
     int CLeftI[3][3];
@@ -103,13 +122,12 @@ int main(int argc, char **argv){
     C[1][0] =v0v1[1]; 
     C[2][0] =v0v1[2]; 
 
-    C[0][1] =N[0]; 
-    C[1][1] =N[1]; 
-    C[2][1] =N[2]; 
+    C[0][1] =secondAxis[0]; 
+    C[1][1] =secondAxis[1]; 
+    C[2][1] =secondAxis[2]; 
 
     findCLeftI(C, CLeftI);
     
-
 
 
 
@@ -151,20 +169,24 @@ int main(int argc, char **argv){
 
                 intersects = intersect(&poly, &ray, t, i_s[0], i_s[1], v);
 
-                if(!v) printVector(ray.P, "rayPB");
+                if(!v){ printVector(ray.P, "rayPB");}
                 //distPoints(&(verts[0]), &ray.P);
                 //newCoord(poly, &ray.P, N);
-                changeBasis(ray.P, CLeftI);
+                changeBasis(&ray.P, CLeftI);
                 if(v==3)fprintf(writeFile, "%f,%f,%f\n", ray.P[0], ray.P[1], ray.P[2] );
                 if(!v) printVector(ray.P, "rayPA");
                 if(!v) printf("intersects? %d\n", intersects);
-                if(ray.P[0]< maxOutSide && ray.P[0]>=0 && ray.P[1]< maxOutSide && ray.P[1]>=0){
+                if(fabs(ray.P[0]) <(maxOutSide*.5)&& fabs(ray.P[1]<(maxOutSide*.5))){
                     if(intersects == 1){
                         //outArr[(int)(ray.P[1])*(maxOutSide)+(int)(ray.P[0])] = 1;
-                        outArr[(int)round(ray.P[1])*(maxOutSide)+(int)round(ray.P[0])] = 2;
+                        if(!v)printf("placeInArr: %i\n", (int)round(ray.P[1]+maxOutSide*.5)*(maxOutSide)+(int)round(ray.P[0]+maxOutSide*.5));
+                        if(!v) printf("coords [%i, %i]\n", (int)round(ray.P[0]+maxOutSide*.5), (int)round(ray.P[1]+maxOutSide*.5));
+                        outArr[(int)round(ray.P[1]+maxOutSide*.5)*(maxOutSide)+(int)round(ray.P[0]+maxOutSide*.5)] = 0;
                     }else{
-                        outArr[(int)round(ray.P[1])*(maxOutSide)+(int)round(ray.P[0])] = 1;
+                        outArr[(int)round(ray.P[1]+maxOutSide*.5)*(maxOutSide)+(int)round(ray.P[0]+maxOutSide*.5)] = 1;
                     }
+                }else{
+                    printf("doesn't fit\n");
                 }
                 /* if(intersects == 1){ */
                 /*     if(!v){ */
@@ -187,15 +209,17 @@ int main(int argc, char **argv){
         }
     }
     /* printf("\n\n\n"); */
-    fprintf(writeFile, "P2\n%i %i\n2\n", maxOutSide, maxOutSide);
-    for(int i = 0; i<maxOutSide;i++){
-        for(int j = 0; j<maxOutSide;j++){
-            /* printf("i: %i, j: %i, maxOutSide: %i\n", i, j, maxOutSide); */
-            //printf("%i ", outArr[i*(maxOutSide)+j]);
-            fprintf(writeFile, "%i ", outArr[i*(maxOutSide)+j]);
-            /* fflush(stdout); */
+    if(v!=3){
+        fprintf(writeFile, "P2\n%i %i\n2\n", maxOutSide, maxOutSide);
+        for(int i = 0; i<maxOutSide;i++){
+            for(int j = 0; j<maxOutSide;j++){
+                /* printf("i: %i, j: %i, maxOutSide: %i\n", i, j, maxOutSide); */
+                //printf("%i ", outArr[i*(maxOutSide)+j]);
+                fprintf(writeFile, "%i ", outArr[i*(maxOutSide)+j]);
+                /* fflush(stdout); */
+            }
+            fprintf(writeFile, "\n");
         }
-        //printf("\n");
     }
     fclose(writeFile);
 
@@ -330,8 +354,7 @@ void findCLeftI(int C[][2], int CLeftI[][3]){
     //https://math.stackexchange.com/questions/79301/left-inverses-for-matrix
     double det;
     det = C[0][0]*C[2][1]-C[0][1]*C[2][0];
-    printf("det: %f\n", det);
-    printf("det: %i\n", det==0);
+    printf("det02: %f\n", det);
     if(det != 0){
         det = 1/det;
         CLeftI[0][0] = C[2][1]*det;
@@ -343,25 +366,40 @@ void findCLeftI(int C[][2], int CLeftI[][3]){
         CLeftI[1][1] = 0;
     }else{
         det = C[0][0]*C[1][1]-C[0][1]*C[1][0];
-        printf("det was 0 so new det is %f", det);
-        if(det == 0){
-            printf("Can't find det");
-            exit(1);
-        }
-        det = 1/det;
-        CLeftI[0][1] = C[2][1]*det;
-        CLeftI[0][2] = -1*C[0][1]*det;
-        CLeftI[1][1] = -1*C[2][0]*det;
-        CLeftI[1][2] = C[0][0]*det;
+        printf("det02 was 0 so det01 is %f\n", det);
+        if(det != 0){
+            det = 1/det;
+            CLeftI[0][0] = C[1][1]*det;
+            CLeftI[0][1] = -1*C[0][1]*det;
+            CLeftI[1][0] = -1*C[1][0]*det;
+            CLeftI[1][1] = C[0][0]*det;
 
-        CLeftI[0][0] = 0;
-        CLeftI[1][0] = 0;
+            CLeftI[0][2] = 0;
+            CLeftI[1][2] = 0;
+        }else{
+
+            det = C[1][0]*C[2][1]-C[1][1]*C[2][0];
+            printf("det01 was 0 so det12 is %f\n", det);
+            if(det != 0){
+                det = 1/det;
+                CLeftI[0][1] = C[2][1]*det;
+                CLeftI[0][2] = -1*C[1][1]*det;
+                CLeftI[1][1] = -1*C[2][0]*det;
+                CLeftI[1][2] = C[1][0]*det;
+
+                CLeftI[0][0] = 0;
+                CLeftI[1][0] = 0;
+            }else{
+                printf("Can't find det");
+                exit(1);
+            }
+        }
     }
     if(!v){
         printf("C: \n");
-        printf("  [[%d, %d],\n", CLeftI[0][0],CLeftI[0][1]);
-        printf("  [[%d, %d],\n", CLeftI[1][0],CLeftI[1][1]);
-        printf("  [[%d, %d]]\n", CLeftI[2][0],CLeftI[2][1]);
+        printf("  [[%d, %d],\n", C[0][0],C[0][1]);
+        printf("  [[%d, %d],\n", C[1][0],C[1][1]);
+        printf("  [[%d, %d]]\n", C[2][0],C[2][1]);
 
         printf("Left Inverse: \n");
         printf("  [[%d, %d, %d],\n", CLeftI[0][0],CLeftI[0][1],CLeftI[0][2]);
@@ -376,7 +414,13 @@ void checkThatLeftInverse(int C[][2], int CLeftI[][3]){
     a01 = CLeftI[0][0]*C[0][1]+CLeftI[0][1]*C[1][1]+CLeftI[0][2]*C[2][1];
     a10 = CLeftI[1][0]*C[0][0]+CLeftI[1][1]*C[1][0]+CLeftI[1][2]*C[2][0];
     a11 = CLeftI[1][0]*C[0][1]+CLeftI[1][1]*C[1][1]+CLeftI[1][2]*C[2][1];
-    if(a00!=1 && a01!=0 && a10!=0 && a11!=0){
+    printf("Left Inverse: \n");
+    printf("  [[%d, %d, %d],\n", CLeftI[0][0],CLeftI[0][1],CLeftI[0][2]);
+    printf("  [[%d, %d, %d]]\n", CLeftI[1][0],CLeftI[1][1],CLeftI[1][2]);
+    printf("checkLeftInverse: \n");
+    printf("  [[%f, %f],\n", a00, a01);
+    printf("  [[%f, %f]]\n", a10, a11);
+    if(!(a00==1 && a01==0 && a10==0 && a11==1)){
         printf("LeftC isn't a left inverse\n");
         exit(1);
     }else{
@@ -384,13 +428,15 @@ void checkThatLeftInverse(int C[][2], int CLeftI[][3]){
     }
 }
 
-void changeBasis(Point a, int CLeftI[][3]){
+void changeBasis(Point *a, int CLeftI[][3]){
     double tmpa0;
-    printf("Left Inverse: \n");
-    printf("  [[%d, %d, %d],\n", CLeftI[0][0],CLeftI[0][1],CLeftI[0][2]);
-    printf("  [[%d, %d, %d]]\n", CLeftI[1][0],CLeftI[1][1],CLeftI[1][2]);
-    tmpa0= CLeftI[0][0]*a[0]+CLeftI[0][1]*a[1]+CLeftI[0][2]*a[2];
-    a[1] = CLeftI[1][0]*a[0]+CLeftI[1][1]*a[1]+CLeftI[1][2]*a[2];
-    a[2] = 0;
-    a[0] = tmpa0;
+    if(!v){
+        printf("Left Inverse: \n");
+        printf("  [[%d, %d, %d],\n", CLeftI[0][0],CLeftI[0][1],CLeftI[0][2]);
+        printf("  [[%d, %d, %d]]\n", CLeftI[1][0],CLeftI[1][1],CLeftI[1][2]);
+    }
+        tmpa0= CLeftI[0][0]*(*a)[0]+CLeftI[0][1]*(*a)[1]+CLeftI[0][2]*(*a)[2];
+        (*a)[1] = CLeftI[1][0]*(*a)[0]+CLeftI[1][1]*(*a)[1]+CLeftI[1][2]*(*a)[2];
+        (*a)[2] = 0;
+        (*a)[0] = tmpa0;
 }
