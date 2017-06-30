@@ -18,6 +18,8 @@ void distPoints(Point *a, Point *b);
 void project(Point *p, Vector N);
 void newCoord(struct Polygon poly, Point *P, Vector N);
 void findCLeftI(int C[][2], int CLeftI[][3]);
+void checkThatLeftInverse(int C[][2], int CleftI[][3]);
+void changeBasis(Point a, int CLeftI[][3]);
 int v = 0;
 
 int main(int argc, char **argv){
@@ -101,9 +103,9 @@ int main(int argc, char **argv){
     C[1][0] =v0v1[1]; 
     C[2][0] =v0v1[2]; 
 
-    C[0][0] =N[0]; 
+    C[0][1] =N[0]; 
     C[1][1] =N[1]; 
-    C[2][2] =N[2]; 
+    C[2][1] =N[2]; 
 
     findCLeftI(C, CLeftI);
     
@@ -151,7 +153,8 @@ int main(int argc, char **argv){
 
                 if(!v) printVector(ray.P, "rayPB");
                 //distPoints(&(verts[0]), &ray.P);
-                newCoord(poly, &ray.P, N);
+                //newCoord(poly, &ray.P, N);
+                changeBasis(ray.P, CLeftI);
                 if(v==3)fprintf(writeFile, "%f,%f,%f\n", ray.P[0], ray.P[1], ray.P[2] );
                 if(!v) printVector(ray.P, "rayPA");
                 if(!v) printf("intersects? %d\n", intersects);
@@ -323,19 +326,71 @@ void newCoord(struct Polygon poly, Point *P, Vector N){
     (*P)[1] = vectorDot(*P,  lastAxis);
 }
 
-findCLeftI(int C[][2], int CLeftI[][3]){
-   double det;
-   det = (1/(C[0][0]*C[2][1]-C[0][1]*C[2][0]));
-   if(det == 0){
-    det = (1/(C[0][0]*C[1][1]-C[0][1]*C[1][0]));
-    if(det == 0){
-        printf("Can't find det");
-        exit(1);
+void findCLeftI(int C[][2], int CLeftI[][3]){
+    //https://math.stackexchange.com/questions/79301/left-inverses-for-matrix
+    double det;
+    det = C[0][0]*C[2][1]-C[0][1]*C[2][0];
+    printf("det: %f\n", det);
+    printf("det: %i\n", det==0);
+    if(det != 0){
+        det = 1/det;
+        CLeftI[0][0] = C[2][1]*det;
+        CLeftI[0][2] = -1*C[0][1]*det;
+        CLeftI[1][0] = -1*C[2][0]*det;
+        CLeftI[1][2] = C[0][0]*det;
+
+        CLeftI[0][1] = 0;
+        CLeftI[1][1] = 0;
+    }else{
+        det = C[0][0]*C[1][1]-C[0][1]*C[1][0];
+        printf("det was 0 so new det is %f", det);
+        if(det == 0){
+            printf("Can't find det");
+            exit(1);
+        }
+        det = 1/det;
+        CLeftI[0][1] = C[2][1]*det;
+        CLeftI[0][2] = -1*C[0][1]*det;
+        CLeftI[1][1] = -1*C[2][0]*det;
+        CLeftI[1][2] = C[0][0]*det;
+
+        CLeftI[0][0] = 0;
+        CLeftI[1][0] = 0;
     }
-   }
-   det = 1/det;
-   CLeftI[0][0] = C[2][1]*det;
-   CLeftI[0][1] = -1*C[0][1]*det;
-   CLeftI[1][0] = -1*C[2][0]*det;
-   CLeftI[1][1] = C[0][0]*det;
+    if(!v){
+        printf("C: \n");
+        printf("  [[%d, %d],\n", CLeftI[0][0],CLeftI[0][1]);
+        printf("  [[%d, %d],\n", CLeftI[1][0],CLeftI[1][1]);
+        printf("  [[%d, %d]]\n", CLeftI[2][0],CLeftI[2][1]);
+
+        printf("Left Inverse: \n");
+        printf("  [[%d, %d, %d],\n", CLeftI[0][0],CLeftI[0][1],CLeftI[0][2]);
+        printf("  [[%d, %d, %d]]\n", CLeftI[1][0],CLeftI[1][1],CLeftI[1][2]);
+    }
+    checkThatLeftInverse(C, CLeftI);
+}
+
+void checkThatLeftInverse(int C[][2], int CLeftI[][3]){
+    double a00, a01, a10, a11;
+    a00 = CLeftI[0][0]*C[0][0]+CLeftI[0][1]*C[1][0]+CLeftI[0][2]*C[2][0];
+    a01 = CLeftI[0][0]*C[0][1]+CLeftI[0][1]*C[1][1]+CLeftI[0][2]*C[2][1];
+    a10 = CLeftI[1][0]*C[0][0]+CLeftI[1][1]*C[1][0]+CLeftI[1][2]*C[2][0];
+    a11 = CLeftI[1][0]*C[0][1]+CLeftI[1][1]*C[1][1]+CLeftI[1][2]*C[2][1];
+    if(a00!=1 && a01!=0 && a10!=0 && a11!=0){
+        printf("LeftC isn't a left inverse\n");
+        exit(1);
+    }else{
+        printf("Valid LEFT INVERSE\n");
+    }
+}
+
+void changeBasis(Point a, int CLeftI[][3]){
+    double tmpa0;
+    printf("Left Inverse: \n");
+    printf("  [[%d, %d, %d],\n", CLeftI[0][0],CLeftI[0][1],CLeftI[0][2]);
+    printf("  [[%d, %d, %d]]\n", CLeftI[1][0],CLeftI[1][1],CLeftI[1][2]);
+    tmpa0= CLeftI[0][0]*a[0]+CLeftI[0][1]*a[1]+CLeftI[0][2]*a[2];
+    a[1] = CLeftI[1][0]*a[0]+CLeftI[1][1]*a[1]+CLeftI[1][2]*a[2];
+    a[2] = 0;
+    a[0] = tmpa0;
 }
