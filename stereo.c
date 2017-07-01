@@ -72,24 +72,17 @@ int main(int argc, char **argv){
     int i_s[2];
     //CHANGE POLY ATTR BELOW
     Point verts[3]= {
-        {ximg*1.5, 0, 0},
-        {ximg*1.5, yimg*1.5, 0},
-        {ximg*1.5, 0, ximg*1.5},
+        {ximg*1, 0, 0},
+        {ximg*1, yimg*1, 0},
+        {ximg*1, 0, ximg*2},
     };
-    Point endPoint = {(int)ximg*2, (int)yimg*1, (int)ximg*.5};
+    Point endPoint = {(int)ximg*2, (int)yimg*.5, (int)ximg*.5};
     /* Point verts[3]= { */
     /*     {0, 0, 20}, */
     /*     {ximg, 0, 20}, */
     /*     {ximg, yimg, 20}, */
     /* }; */
     /* Point endPoint = {(int)ximg*.5, (int)yimg*.5, 500}; */
-    /*
-    Point verts[3]= {
-        {,0, 0},
-        {200, 0, 300},
-        {200, 200, 300},
-    };
-    */
 
     struct Polygon poly = {
         3,
@@ -215,7 +208,11 @@ int main(int argc, char **argv){
             for(int j = 0; j<maxOutSide;j++){
                 /* printf("i: %i, j: %i, maxOutSide: %i\n", i, j, maxOutSide); */
                 //printf("%i ", outArr[i*(maxOutSide)+j]);
-                fprintf(writeFile, "%i ", outArr[i*(maxOutSide)+j]);
+                if(i == maxOutSide*.5 || j == maxOutSide*.5 || i == yimg || j == ximg){
+                    fprintf(writeFile, "1 ");
+                }else{
+                    fprintf(writeFile, "%i ", outArr[i*(maxOutSide)+j]);
+                }
                 /* fflush(stdout); */
             }
             fprintf(writeFile, "\n");
