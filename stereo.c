@@ -57,7 +57,7 @@ int main(int argc, char **argv){
     fread(imgArr, sizeof(int)*(ximg), (yimg), fp);
     /* printf("%c\n", imgArr[115*(width)+5]); */
     //arr[i*width+j]
-    int maxOutSide = 1000;
+    int maxOutSide = 2000;
     int *outArr = malloc(sizeof(int)*maxOutSide*maxOutSide);
     for(int i = 0; i<maxOutSide;i++){
         for(int j = 0; j<maxOutSide;j++){
@@ -76,7 +76,7 @@ int main(int argc, char **argv){
         {ximg*1, yimg*1, 0},
         {ximg*1, 0, ximg*2},
     };
-    Point endPoint = {(int)ximg*2, (int)yimg*.5, (int)ximg*.5};
+    Point endPoint = {(int)ximg*5, (int)yimg*1.5, (int)ximg*1.5};
     /* Point verts[3]= { */
     /*     {0, 0, 20}, */
     /*     {ximg, 0, 20}, */
