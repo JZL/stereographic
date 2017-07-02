@@ -2,10 +2,9 @@
 typedef double Point[3];
 typedef double Vector[3];
 struct Ray {
-    Point O;
-    Point D;
-    Point P;
-    Vector normal;
+    Point O; //Origin
+    Point D; //Is the Slope
+    Point P; //Dest
 
 } ;
 struct Polygon {

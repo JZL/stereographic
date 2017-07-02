@@ -34,7 +34,7 @@ int main(int argc, char **argv){
     }
     //sed '2,$s/\s//g' simple.bpm |tr -d "\n" > test.smaller.pbm
     //and then go in and and new lines to the header 
-    fp = fopen("test.smaller.pbm", "r");
+    fp = fopen("in.pbm", "r");
     /* fp = fopen("test.smaller.pbm", "r"); */
     if(fp == NULL){
         printf("Error reading file\n");
@@ -57,11 +57,13 @@ int main(int argc, char **argv){
     fread(imgArr, sizeof(int)*(ximg), (yimg), fp);
     /* printf("%c\n", imgArr[115*(width)+5]); */
     //arr[i*width+j]
-    int maxOutSide = 2000;
-    int *outArr = malloc(sizeof(int)*maxOutSide*maxOutSide);
-    for(int i = 0; i<maxOutSide;i++){
-        for(int j = 0; j<maxOutSide;j++){
-            outArr[j*(maxOutSide)+i] = 2;
+int sizeOfPaperY = 1100;
+int sizeOfPaperX = 850;
+    int maxOutSide = 1000;
+int *outArr = malloc(sizeof(int)*sizeOfPaperX*sizeOfPaperY);
+    for(int i = 0; i<sizeOfPaperY;i++){
+        for(int j = 0; j<sizeOfPaperX;j++){
+            outArr[i*sizeOfPaperX+j] = 2;
         }
     }
 
@@ -72,17 +74,24 @@ int main(int argc, char **argv){
     int i_s[2];
     //CHANGE POLY ATTR BELOW
     Point verts[3]= {
-        {ximg*1, 0, 0},
-        {ximg*1, yimg*1, 0},
-        {ximg*1, 0, ximg*2},
+        {ximg*1.5, 0, 0},
+        {ximg*1.5, yimg*1.5, 0},
+        {ximg*1.5, 0, ximg*1.5},
     };
-    Point endPoint = {(int)ximg*5, (int)yimg*1.5, (int)ximg*1.5};
+    Point endPoint = {(int)ximg*2, (int)yimg*1, (int)ximg*.5};
     /* Point verts[3]= { */
     /*     {0, 0, 20}, */
     /*     {ximg, 0, 20}, */
     /*     {ximg, yimg, 20}, */
     /* }; */
     /* Point endPoint = {(int)ximg*.5, (int)yimg*.5, 500}; */
+    /*
+    Point verts[3]= {
+        {,0, 0},
+        {200, 0, 300},
+        {200, 200, 300},
+    };
+    */
 
     struct Polygon poly = {
         3,
@@ -204,15 +213,11 @@ int main(int argc, char **argv){
     /* printf("\n\n\n"); */
     if(v!=3){
         fprintf(writeFile, "P2\n%i %i\n2\n", maxOutSide, maxOutSide);
-        for(int i = 0; i<maxOutSide;i++){
-            for(int j = 0; j<maxOutSide;j++){
+            for(int j = 0; j<sizeOfPaperY;j++){
+        for(int i = 0; i<sizeOfPaperX;i++){
                 /* printf("i: %i, j: %i, maxOutSide: %i\n", i, j, maxOutSide); */
                 //printf("%i ", outArr[i*(maxOutSide)+j]);
-                if(i == maxOutSide*.5 || j == maxOutSide*.5 || i == yimg || j == ximg){
-                    fprintf(writeFile, "1 ");
-                }else{
-                    fprintf(writeFile, "%i ", outArr[i*(maxOutSide)+j]);
-                }
+                fprintf(writeFile, "%i ", outArr[j*(sizeOfPaperX)+i]);
                 /* fflush(stdout); */
             }
             fprintf(writeFile, "\n");
