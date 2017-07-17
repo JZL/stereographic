@@ -27,6 +27,7 @@ int main(int argc, char **argv){
     FILE *writeFile;
     char magicNumStr[2];
     int yimg, ximg;
+    int tmpF;
     Vector N;
     if(argc >1){
         v = strtol(argv[1], NULL, 10);
@@ -44,17 +45,33 @@ int main(int argc, char **argv){
     if(writeFile == NULL){
         printf("couldn't write to file");
     }
-    fscanf(fp, "%s", magicNumStr);
+    tmpF = fscanf(fp, "%s", magicNumStr);
+    printf("tmpF: %i\n", tmpF);
+    if (feof(fp) ||tmpF != 1){
+        printf("Unexpected error in input data.");
+        exit(EXIT_FAILURE);
+    }
     /* printf("%s\n", magicNumStr); */
     if(strcmp(magicNumStr, "P1")!=0){
         printf("Needs to be pbm\n");
         exit(2);
     }
 
-    fscanf(fp, "%i %i\n",&yimg, &ximg );
+    tmpF = fscanf(fp, "%i %i\n",&yimg, &ximg );
+    printf("tmpF: %i\n", tmpF);
+    if (feof(fp)||tmpF != 2){
+        printf("Unexpected error in input data.");
+        exit(EXIT_FAILURE);
+    }
     /* printf("%i %i\n", height, width); */
     char *imgArr = malloc(sizeof(int)*yimg*(ximg));
-    fread(imgArr, sizeof(int)*(ximg), (yimg), fp);
+    tmpF = fread(imgArr, sizeof(int)*(ximg), (yimg), fp);
+    printf("tmpF: %i %i, %i, feof(fp): %i\n", tmpF,ximg, yimg, feof(fp));
+    if(!feof(fp) ||tmpF!=yimg/4){
+        //want ti be the end of file
+        printf("Unexpected error in input data.");
+        exit(EXIT_FAILURE);
+    }
     /* printf("%c\n", imgArr[115*(width)+5]); */
     //arr[i*width+j]
     int sizeOfPaperY = 500;
