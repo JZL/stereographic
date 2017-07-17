@@ -57,8 +57,8 @@ int main(int argc, char **argv){
     fread(imgArr, sizeof(int)*(ximg), (yimg), fp);
     /* printf("%c\n", imgArr[115*(width)+5]); */
     //arr[i*width+j]
-    int sizeOfPaperY = 1000;
-    int sizeOfPaperX = 1000;
+    int sizeOfPaperY = 500;
+    int sizeOfPaperX = 500;
     int *outArr = malloc(sizeof(int)*sizeOfPaperX*sizeOfPaperY);
     for(int i = 0; i<sizeOfPaperY;i++){
         for(int j = 0; j<sizeOfPaperX;j++){
@@ -79,22 +79,30 @@ int main(int argc, char **argv){
     /*     {ximg*1.5, 0, ximg*1.5}, */
     /* }; */
     /* Point endPoint = {(int)ximg*2, (int)yimg*1, (int)ximg*.5}; */
+    /*
     Point verts[4]= {
         {0,0,0},
         {0,0, 125},
         {125,0,0},
         {125,0,125}
     };
+    */
+    Point verts[4]= {
+        {0,0,20},
+        {ximg, 0, 20},
+        {ximg, yimg, 20},
+        {0, yimg, 20},
+    };
 
+    /*
     for(int i =0; i<4;i++){
         verts[i][0]*=2;
         verts[i][1]*=2;
         verts[i][0]+=(ximg/2-(125/2));
         verts[i][1]+=(yimg/2-(125/2));
     }
-    Point endPoint = {(125)/2, (56.25)/2, 125};
-    endPoint[0]+=(ximg/2-(125/2));
-    endPoint[1]+=(yimg/2-(125/2));
+    */
+    Point endPoint = {(ximg)/2, (ximg)/2, 125};
 
     struct Polygon poly = {
         4,
@@ -141,7 +149,7 @@ int main(int argc, char **argv){
     for(int i = 0; i<yimg;i++){
         for(int j = 0; j<ximg;j++){
             //todo
-            if(imgArr[j*ximg+i] == '1'){
+            if(imgArr[i*ximg+j] == '1'){
                 ray.O[0] = j;//x
                 ray.O[1] = i;//y
                 ray.O[2] = 0;//z
@@ -181,13 +189,19 @@ int main(int argc, char **argv){
                 if(v==3)fprintf(writeFile, "%f,%f,%f\n", ray.P[0], ray.P[1], ray.P[2] );
                 if(!v) printVector(ray.P, "rayPA");
                 if(!v) printf("intersects? %d\n", intersects);
+                ray.P[0]+=sizeOfPaperX*.5;
+                ray.P[1]+=sizeOfPaperY*.5;
+                if(!v) printVector(ray.P, "rayPAfterAdd");
                 if(intersects == 1){
-                    if(fabs(ray.P[0]) <((sizeOfPaperX/2)*.5)&& fabs(ray.P[1]<((sizeOfPaperY/2)*.5))){
+                    if(ray.P[0]>=0 && ray.P[0] < sizeOfPaperX  && ray.P[1]>=0 && ray.P[1]<sizeOfPaperY){
                         //outArr[(int)(ray.P[1])*(maxOutSide)+(int)(ray.P[0])] = 1;
                         /* if(!v) printf("coords [%i, %i]\n", (int)(round(ray.P[1]+sizeOfPaperY*.5)),(int)round(ray.P[0]+sizeOfPaperX*.5)); */
                         /* outArr[(int)round(ray.P[1]+maxOutSide*.5)*(maxOutSide)+(int)round(ray.P[0]+maxOutSide*.5)] = 0; */
 
-                        outArr[(int)(round(ray.P[1]+sizeOfPaperY*.5))*(sizeOfPaperX)+(int)round(ray.P[0]+sizeOfPaperX*.5)] = 0;
+                        //outArr[(int)(round(ray.P[1]*1.5+sizeOfPaperY*.5+200)*(sizeOfPaperX)+(int)round(ray.P[0]*2+sizeOfPaperX*.5-200))] = 0;
+                        //outArr[(int)(round((ray.P[1]+200)*1.5+sizeOfPaperY*.5)*(sizeOfPaperX)+(int)round(ray.P[0]+sizeOfPaperX*.5))] = 0;
+                        //outArr[(int)(round(ray.P[1]*3.5-150)*(sizeOfPaperX)+(int)round(ray.P[0]*3.5-400))] = 0;
+                        outArr[(int)(round(ray.P[1])*(sizeOfPaperX)+(int)round(ray.P[0]))] = 0;
                         ray.P[1]+=sizeOfPaperY/2;
                         fractY = modf(ray.P[1], &higherResY);
                         if(fractY<=.5){
@@ -236,10 +250,14 @@ int main(int argc, char **argv){
         fprintf(writeFile, "P2\n%i %i\n2\n", sizeOfPaperX, sizeOfPaperY);
         for(int j = 0; j<sizeOfPaperY;j++){
             for(int i = 0; i<sizeOfPaperX;i++){
-                /* printf("i: %i, j: %i, maxOutSide: %i\n", i, j, maxOutSide); */
-                //printf("%i ", outArr[i*(maxOutSide)+j]);
-                fprintf(writeFile, "%i ", outArr[j*(sizeOfPaperX)+i]);
-                /* fflush(stdout); */
+                if(i == sizeOfPaperX/2 || j == sizeOfPaperY/2){
+                    fprintf(writeFile, "1 ");
+                }else{
+                    /* printf("i: %i, j: %i, maxOutSide: %i\n", i, j, maxOutSide); */
+                    //printf("%i ", outArr[i*(maxOutSide)+j]);
+                    fprintf(writeFile, "%i ", outArr[j*(sizeOfPaperX)+i]);
+                    /* fflush(stdout); */
+                }
             }
             fprintf(writeFile, "\n");
         }
