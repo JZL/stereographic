@@ -21,13 +21,25 @@ void findCLeftI(int C[][2], int CLeftI[][3]);
 void checkThatLeftInverse(int C[][2], int CleftI[][3]);
 void changeBasis(Point *a, int CLeftI[][3]);
 int v = 1;
-
+void findMinMax(double X, double Y, double *minMaxX, double *minMaxY);
+struct coord2D  {
+    double X;
+    double Y;
+};
 int main(int argc, char **argv){
     FILE *fp;
     FILE *writeFile;
     char magicNumStr[2];
     int yimg, ximg;
     int tmpF;
+
+    double minMaxX[2];
+    double minMaxY[2];
+    int scale=1; //if make 1, will scale to take up (with 1:1 scaling), the output size
+
+    int firstTime = 1; //for findingMinMax, if first run through loop
+    //can't be i && j == 0 bc the value at [i][j] might not be == 1
+
     Vector N;
     if(argc >1){
         v = strtol(argv[1], NULL, 10);
@@ -72,6 +84,10 @@ int main(int argc, char **argv){
         printf("Unexpected error in input data.");
         exit(EXIT_FAILURE);
     }
+
+
+    struct coord2D *newCordArr = malloc(sizeof(struct coord2D)*yimg*ximg);
+
     /* printf("%c\n", imgArr[115*(width)+5]); */
     //arr[i*width+j]
     int sizeOfPaperY = 500;
@@ -79,14 +95,13 @@ int main(int argc, char **argv){
     int *outArr = malloc(sizeof(int)*sizeOfPaperX*sizeOfPaperY);
     for(int i = 0; i<sizeOfPaperY;i++){
         for(int j = 0; j<sizeOfPaperX;j++){
-            outArr[i*sizeOfPaperX+j] = 2;
+            outArr[i*sizeOfPaperX+j] = 1;
         }
     }
 
 
 
     double t;
-    double fractX, higherResX, fractY, higherResY;
     bool intersects;
     int i_s[2];
     //CHANGE POLY ATTR BELOW
@@ -119,7 +134,7 @@ int main(int argc, char **argv){
         verts[i][1]+=(yimg/2-(125/2));
     }
     */
-    Point endPoint = {(ximg)/2, (ximg)/2, 125};
+    Point endPoint = {(ximg)/2, (ximg)/2, 55525};
 
     struct Polygon poly = {
         4,
@@ -165,6 +180,8 @@ int main(int argc, char **argv){
     /* printf("x: %i, y: %i\n", width, height); */
     for(int i = 0; i<yimg;i++){
         for(int j = 0; j<ximg;j++){
+            newCordArr[i*ximg+j].X = 0;
+            newCordArr[i*ximg+j].Y = 0;
             //todo
             if(imgArr[i*ximg+j] == '1'){
                 ray.O[0] = j;//x
@@ -209,8 +226,51 @@ int main(int argc, char **argv){
                 ray.P[0]+=sizeOfPaperX*.5;
                 ray.P[1]+=sizeOfPaperY*.5;
                 if(!v) printVector(ray.P, "rayPAfterAdd");
+                if(firstTime == 1){
+                    //set minMax with init values
+                    minMaxX[0] = ray.P[0];
+                    minMaxX[1] = ray.P[0];
+                    minMaxY[0] = ray.P[1];
+                    minMaxY[1] = ray.P[1];
+                    firstTime = 0;
+                }
+                findMinMax(ray.P[0], ray.P[1], minMaxX, minMaxY);
                 if(intersects == 1){
-                    if(ray.P[0]>=0 && ray.P[0] < sizeOfPaperX  && ray.P[1]>=0 && ray.P[1]<sizeOfPaperY){
+                    newCordArr[i*ximg+j].X = ray.P[0];
+                    newCordArr[i*ximg+j].Y = ray.P[1];
+                }else{
+                    //there will be an open spot at 0,0 but, otherwise, need to store ximg*yimg*sizeof(char OR int) to say if intersects
+                    newCordArr[i*ximg+j].X = 2;
+                    newCordArr[i*ximg+j].Y = 2;
+                }
+            }
+        }
+    }
+    double changeXSize = (sizeOfPaperX/(minMaxX[1] - minMaxX[0]));
+    double changeYSize = (sizeOfPaperY/(minMaxY[1] - minMaxY[0]));
+    double changeSize = 0;
+    if(changeXSize< changeYSize){
+        changeSize = changeXSize;
+    }else{
+        changeSize = changeYSize;
+    }
+    if(scale == 0){
+        changeSize = 1;
+    }
+    if(minMaxX[1] - minMaxX[0] > sizeOfPaperX){
+        printf("WILL OVERFLOW IN X DIREACTION\n");
+    }
+    if(minMaxY[1] - minMaxY[0] > sizeOfPaperY){
+        printf("WILL OVERFLOW IN Y DIREACTION\n");
+    }
+    for(int i = 0; i<yimg;i++){
+        for(int j = 0; j<ximg;j++){
+            int X = newCordArr[i*ximg+j].X;
+            int Y = newCordArr[i*ximg+j].Y;
+                if(!(X==0 && Y==0)){
+                    X = (X-minMaxX[0])*changeSize;
+                    Y = (Y-minMaxY[0])*changeSize;
+                    if(X>=0 && X< sizeOfPaperX  && Y>=0 && Y<sizeOfPaperY){
                         //outArr[(int)(ray.P[1])*(maxOutSide)+(int)(ray.P[0])] = 1;
                         /* if(!v) printf("coords [%i, %i]\n", (int)(round(ray.P[1]+sizeOfPaperY*.5)),(int)round(ray.P[0]+sizeOfPaperX*.5)); */
                         /* outArr[(int)round(ray.P[1]+maxOutSide*.5)*(maxOutSide)+(int)round(ray.P[0]+maxOutSide*.5)] = 0; */
@@ -218,25 +278,7 @@ int main(int argc, char **argv){
                         //outArr[(int)(round(ray.P[1]*1.5+sizeOfPaperY*.5+200)*(sizeOfPaperX)+(int)round(ray.P[0]*2+sizeOfPaperX*.5-200))] = 0;
                         //outArr[(int)(round((ray.P[1]+200)*1.5+sizeOfPaperY*.5)*(sizeOfPaperX)+(int)round(ray.P[0]+sizeOfPaperX*.5))] = 0;
                         //outArr[(int)(round(ray.P[1]*3.5-150)*(sizeOfPaperX)+(int)round(ray.P[0]*3.5-400))] = 0;
-                        outArr[(int)(round(ray.P[1])*(sizeOfPaperX)+(int)round(ray.P[0]))] = 0;
-                        ray.P[1]+=sizeOfPaperY/2;
-                        fractY = modf(ray.P[1], &higherResY);
-                        if(fractY<=.5){
-                            higherResY= higherResY*2-1;
-                        }else{
-                            higherResY= higherResY*2;
-                        }
-                        ray.P[0]+=sizeOfPaperX/2;
-                        fractY = modf(ray.P[1], &higherResY);
-                        fractX = modf(ray.P[0], &higherResX);
-                        if(fractX<=.5){
-                            higherResX= higherResX*2-1;
-                        }else{
-                            higherResX= higherResX*2;
-                        }
-                        if(!v)printf("higherRes: [%f, %f]\n", higherResX, higherResY);
-                        fflush(stdout);
-                        /* outArr[(int)(higherResY)*(sizeOfPaperX)+(int)higherResX] = 0; */
+                        outArr[(int)(round(Y)*(sizeOfPaperX)+(int)round(X))] = 0;
                     }else{
                         printf("doesn't fit\n");
                         /* outArr[(int)(round(ray.P[1]+sizeOfPaperY*.5))*(sizeOfPaperX)+(int)round(ray.P[0]+sizeOfPaperX*.5)] = 1; */
@@ -261,14 +303,13 @@ int main(int argc, char **argv){
                 if(!v) printf("---\n");
             }
         }
-    }
     /* printf("\n\n\n"); */
     if(v!=3){
         fprintf(writeFile, "P2\n%i %i\n2\n", sizeOfPaperX, sizeOfPaperY);
         for(int j = 0; j<sizeOfPaperY;j++){
             for(int i = 0; i<sizeOfPaperX;i++){
                 if(i == sizeOfPaperX/2 || j == sizeOfPaperY/2){
-                    fprintf(writeFile, "1 ");
+                    fprintf(writeFile, "2 ");
                 }else{
                     /* printf("i: %i, j: %i, maxOutSide: %i\n", i, j, maxOutSide); */
                     //printf("%i ", outArr[i*(maxOutSide)+j]);
@@ -283,6 +324,7 @@ int main(int argc, char **argv){
 
     free(imgArr);
     free(outArr);
+    free(newCordArr);
     fclose(fp);
 
 }
@@ -497,4 +539,18 @@ void changeBasis(Point *a, int CLeftI[][3]){
     (*a)[1] = CLeftI[1][0]*(*a)[0]+CLeftI[1][1]*(*a)[1]+CLeftI[1][2]*(*a)[2];
     (*a)[2] = 0;
     (*a)[0] = tmpa0;
+}
+void findMinMax(double X, double Y, double *minMaxX, double *minMaxY){
+    if(X < minMaxX[0]){
+        minMaxX[0] = X;
+    }
+    if(X > minMaxX[1]){
+        minMaxX[1] = X;
+    }
+    if(Y < minMaxY[0]){
+        minMaxY[0] = Y;
+    }
+    if(Y > minMaxY[1]){
+        minMaxY[1] = Y;
+    }
 }
