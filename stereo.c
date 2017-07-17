@@ -57,10 +57,9 @@ int main(int argc, char **argv){
     fread(imgArr, sizeof(int)*(ximg), (yimg), fp);
     /* printf("%c\n", imgArr[115*(width)+5]); */
     //arr[i*width+j]
-int sizeOfPaperY = 1100;
-int sizeOfPaperX = 850;
-    int maxOutSide = 1000;
-int *outArr = malloc(sizeof(int)*sizeOfPaperX*sizeOfPaperY);
+    int sizeOfPaperY = 1000;
+    int sizeOfPaperX = 1000;
+    int *outArr = malloc(sizeof(int)*sizeOfPaperX*sizeOfPaperY);
     for(int i = 0; i<sizeOfPaperY;i++){
         for(int j = 0; j<sizeOfPaperX;j++){
             outArr[i*sizeOfPaperX+j] = 2;
@@ -70,31 +69,35 @@ int *outArr = malloc(sizeof(int)*sizeOfPaperX*sizeOfPaperY);
 
 
     double t;
+    double fractX, higherResX, fractY, higherResY;
     bool intersects;
     int i_s[2];
     //CHANGE POLY ATTR BELOW
-    Point verts[3]= {
-        {ximg*1.5, 0, 0},
-        {ximg*1.5, yimg*1.5, 0},
-        {ximg*1.5, 0, ximg*1.5},
-    };
-    Point endPoint = {(int)ximg*2, (int)yimg*1, (int)ximg*.5};
-    /* Point verts[3]= { */
-    /*     {0, 0, 20}, */
-    /*     {ximg, 0, 20}, */
-    /*     {ximg, yimg, 20}, */
+    /* Point verts[4]= { */
+    /*     {ximg*1.5, 0, 0}, */
+    /*     {ximg*1.5, yimg*1.5, 0}, */
+    /*     {ximg*1.5, 0, ximg*1.5}, */
     /* }; */
-    /* Point endPoint = {(int)ximg*.5, (int)yimg*.5, 500}; */
-    /*
-    Point verts[3]= {
-        {,0, 0},
-        {200, 0, 300},
-        {200, 200, 300},
+    /* Point endPoint = {(int)ximg*2, (int)yimg*1, (int)ximg*.5}; */
+    Point verts[4]= {
+        {0,0,0},
+        {0,0, 125},
+        {125,0,0},
+        {125,0,125}
     };
-    */
+
+    for(int i =0; i<4;i++){
+        verts[i][0]*=2;
+        verts[i][1]*=2;
+        verts[i][0]+=(ximg/2-(125/2));
+        verts[i][1]+=(yimg/2-(125/2));
+    }
+    Point endPoint = {(125)/2, (56.25)/2, 125};
+    endPoint[0]+=(ximg/2-(125/2));
+    endPoint[1]+=(yimg/2-(125/2));
 
     struct Polygon poly = {
-        3,
+        4,
         false,
         verts
     };
@@ -129,7 +132,7 @@ int *outArr = malloc(sizeof(int)*sizeOfPaperX*sizeOfPaperY);
     C[2][1] =secondAxis[2]; 
 
     findCLeftI(C, CLeftI);
-    
+
 
 
 
@@ -178,17 +181,35 @@ int *outArr = malloc(sizeof(int)*sizeOfPaperX*sizeOfPaperY);
                 if(v==3)fprintf(writeFile, "%f,%f,%f\n", ray.P[0], ray.P[1], ray.P[2] );
                 if(!v) printVector(ray.P, "rayPA");
                 if(!v) printf("intersects? %d\n", intersects);
-                if(fabs(ray.P[0]) <(maxOutSide*.5)&& fabs(ray.P[1]<(maxOutSide*.5))){
-                    if(intersects == 1){
+                if(intersects == 1){
+                    if(fabs(ray.P[0]) <((sizeOfPaperX/2)*.5)&& fabs(ray.P[1]<((sizeOfPaperY/2)*.5))){
                         //outArr[(int)(ray.P[1])*(maxOutSide)+(int)(ray.P[0])] = 1;
-                        if(!v)printf("placeInArr: %i\n", (int)round(ray.P[1]+maxOutSide*.5)*(maxOutSide)+(int)round(ray.P[0]+maxOutSide*.5));
-                        if(!v) printf("coords [%i, %i]\n", (int)round(ray.P[0]+maxOutSide*.5), (int)round(ray.P[1]+maxOutSide*.5));
-                        outArr[(int)round(ray.P[1]+maxOutSide*.5)*(maxOutSide)+(int)round(ray.P[0]+maxOutSide*.5)] = 0;
+                        /* if(!v) printf("coords [%i, %i]\n", (int)(round(ray.P[1]+sizeOfPaperY*.5)),(int)round(ray.P[0]+sizeOfPaperX*.5)); */
+                        /* outArr[(int)round(ray.P[1]+maxOutSide*.5)*(maxOutSide)+(int)round(ray.P[0]+maxOutSide*.5)] = 0; */
+
+                        outArr[(int)(round(ray.P[1]+sizeOfPaperY*.5))*(sizeOfPaperX)+(int)round(ray.P[0]+sizeOfPaperX*.5)] = 0;
+                        ray.P[1]+=sizeOfPaperY/2;
+                        fractY = modf(ray.P[1], &higherResY);
+                        if(fractY<=.5){
+                            higherResY= higherResY*2-1;
+                        }else{
+                            higherResY= higherResY*2;
+                        }
+                        ray.P[0]+=sizeOfPaperX/2;
+                        fractY = modf(ray.P[1], &higherResY);
+                        fractX = modf(ray.P[0], &higherResX);
+                        if(fractX<=.5){
+                            higherResX= higherResX*2-1;
+                        }else{
+                            higherResX= higherResX*2;
+                        }
+                        if(!v)printf("higherRes: [%f, %f]\n", higherResX, higherResY);
+                        fflush(stdout);
+                        /* outArr[(int)(higherResY)*(sizeOfPaperX)+(int)higherResX] = 0; */
                     }else{
-                        outArr[(int)round(ray.P[1]+maxOutSide*.5)*(maxOutSide)+(int)round(ray.P[0]+maxOutSide*.5)] = 1;
+                        printf("doesn't fit\n");
+                        /* outArr[(int)(round(ray.P[1]+sizeOfPaperY*.5))*(sizeOfPaperX)+(int)round(ray.P[0]+sizeOfPaperX*.5)] = 1; */
                     }
-                }else{
-                    printf("doesn't fit\n");
                 }
                 /* if(intersects == 1){ */
                 /*     if(!v){ */
@@ -212,9 +233,9 @@ int *outArr = malloc(sizeof(int)*sizeOfPaperX*sizeOfPaperY);
     }
     /* printf("\n\n\n"); */
     if(v!=3){
-        fprintf(writeFile, "P2\n%i %i\n2\n", maxOutSide, maxOutSide);
-            for(int j = 0; j<sizeOfPaperY;j++){
-        for(int i = 0; i<sizeOfPaperX;i++){
+        fprintf(writeFile, "P2\n%i %i\n2\n", sizeOfPaperX, sizeOfPaperY);
+        for(int j = 0; j<sizeOfPaperY;j++){
+            for(int i = 0; i<sizeOfPaperX;i++){
                 /* printf("i: %i, j: %i, maxOutSide: %i\n", i, j, maxOutSide); */
                 //printf("%i ", outArr[i*(maxOutSide)+j]);
                 fprintf(writeFile, "%i ", outArr[j*(sizeOfPaperX)+i]);
@@ -437,8 +458,8 @@ void changeBasis(Point *a, int CLeftI[][3]){
         printf("  [[%d, %d, %d],\n", CLeftI[0][0],CLeftI[0][1],CLeftI[0][2]);
         printf("  [[%d, %d, %d]]\n", CLeftI[1][0],CLeftI[1][1],CLeftI[1][2]);
     }
-        tmpa0= CLeftI[0][0]*(*a)[0]+CLeftI[0][1]*(*a)[1]+CLeftI[0][2]*(*a)[2];
-        (*a)[1] = CLeftI[1][0]*(*a)[0]+CLeftI[1][1]*(*a)[1]+CLeftI[1][2]*(*a)[2];
-        (*a)[2] = 0;
-        (*a)[0] = tmpa0;
+    tmpa0= CLeftI[0][0]*(*a)[0]+CLeftI[0][1]*(*a)[1]+CLeftI[0][2]*(*a)[2];
+    (*a)[1] = CLeftI[1][0]*(*a)[0]+CLeftI[1][1]*(*a)[1]+CLeftI[1][2]*(*a)[2];
+    (*a)[2] = 0;
+    (*a)[0] = tmpa0;
 }
