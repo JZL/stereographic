@@ -90,12 +90,12 @@ int main(int argc, char **argv){
 
     /* printf("%c\n", imgArr[115*(width)+5]); */
     //arr[i*width+j]
-    int sizeOfPaperY = 500;
-    int sizeOfPaperX = 500;
+    int sizeOfPaperY = 1000;
+    int sizeOfPaperX = 1000;
     int *outArr = malloc(sizeof(int)*sizeOfPaperX*sizeOfPaperY);
     for(int i = 0; i<sizeOfPaperY;i++){
         for(int j = 0; j<sizeOfPaperX;j++){
-            outArr[i*sizeOfPaperX+j] = 1;
+            outArr[i*sizeOfPaperX+j] = 2;
         }
     }
 
@@ -105,11 +105,12 @@ int main(int argc, char **argv){
     bool intersects;
     int i_s[2];
     //CHANGE POLY ATTR BELOW
-    /* Point verts[4]= { */
-    /*     {ximg*1.5, 0, 0}, */
-    /*     {ximg*1.5, yimg*1.5, 0}, */
-    /*     {ximg*1.5, 0, ximg*1.5}, */
-    /* }; */
+     Point verts[4]= { 
+         {ximg*1.0, 0, 0}, 
+         {ximg*1.0, yimg*1.0, 0}, 
+         {ximg*1.0, 0, ximg*1}, 
+         {ximg*1.0, yimg*1.0, ximg*1}, 
+     }; 
     /* Point endPoint = {(int)ximg*2, (int)yimg*1, (int)ximg*.5}; */
     /*
     Point verts[4]= {
@@ -119,12 +120,14 @@ int main(int argc, char **argv){
         {125,0,125}
     };
     */
+    /*
     Point verts[4]= {
         {0,0,20},
         {ximg, 0, 20},
         {ximg, yimg, 20},
         {0, yimg, 20},
     };
+    */
 
     /*
     for(int i =0; i<4;i++){
@@ -134,7 +137,8 @@ int main(int argc, char **argv){
         verts[i][1]+=(yimg/2-(125/2));
     }
     */
-    Point endPoint = {(ximg)/2, (ximg)/2, 55525};
+    //Point endPoint = {(ximg)/2, (ximg)/2, 55525};
+    Point endPoint = {(ximg)*1.5, (yimg)*.5, ximg*.5};
 
     struct Polygon poly = {
         4,
@@ -175,6 +179,10 @@ int main(int argc, char **argv){
 
 
 
+    Point lightPoint = {endPoint[0], endPoint[1], 0};
+    printVector(lightPoint, "lightPointBef");
+    changeBasis(&lightPoint, CLeftI);
+    printVector(lightPoint, "lightPointAft");
 
     //everything in pixel width
     /* printf("x: %i, y: %i\n", width, height); */
@@ -223,8 +231,6 @@ int main(int argc, char **argv){
                 if(v==3)fprintf(writeFile, "%f,%f,%f\n", ray.P[0], ray.P[1], ray.P[2] );
                 if(!v) printVector(ray.P, "rayPA");
                 if(!v) printf("intersects? %d\n", intersects);
-                ray.P[0]+=sizeOfPaperX*.5;
-                ray.P[1]+=sizeOfPaperY*.5;
                 if(!v) printVector(ray.P, "rayPAfterAdd");
                 if(firstTime == 1){
                     //set minMax with init values
@@ -246,6 +252,8 @@ int main(int argc, char **argv){
             }
         }
     }
+    
+
     double changeXSize = (sizeOfPaperX/(minMaxX[1] - minMaxX[0]));
     double changeYSize = (sizeOfPaperY/(minMaxY[1] - minMaxY[0]));
     double changeSize = 0;
@@ -271,6 +279,9 @@ int main(int argc, char **argv){
                     X = (X-minMaxX[0])*changeSize;
                     Y = (Y-minMaxY[0])*changeSize;
                     if(X>=0 && X< sizeOfPaperX  && Y>=0 && Y<sizeOfPaperY){
+                        if(fabs(X - lightPoint[0]) > 200 ){
+                            outArr[(int)(round(Y)*(sizeOfPaperX)+(int)round(X))] = 0;
+                        }else{
                         //outArr[(int)(ray.P[1])*(maxOutSide)+(int)(ray.P[0])] = 1;
                         /* if(!v) printf("coords [%i, %i]\n", (int)(round(ray.P[1]+sizeOfPaperY*.5)),(int)round(ray.P[0]+sizeOfPaperX*.5)); */
                         /* outArr[(int)round(ray.P[1]+maxOutSide*.5)*(maxOutSide)+(int)round(ray.P[0]+maxOutSide*.5)] = 0; */
@@ -279,6 +290,7 @@ int main(int argc, char **argv){
                         //outArr[(int)(round((ray.P[1]+200)*1.5+sizeOfPaperY*.5)*(sizeOfPaperX)+(int)round(ray.P[0]+sizeOfPaperX*.5))] = 0;
                         //outArr[(int)(round(ray.P[1]*3.5-150)*(sizeOfPaperX)+(int)round(ray.P[0]*3.5-400))] = 0;
                         outArr[(int)(round(Y)*(sizeOfPaperX)+(int)round(X))] = 0;
+                        }
                     }else{
                         printf("doesn't fit\n");
                         /* outArr[(int)(round(ray.P[1]+sizeOfPaperY*.5))*(sizeOfPaperX)+(int)round(ray.P[0]+sizeOfPaperX*.5)] = 1; */
@@ -303,6 +315,11 @@ int main(int argc, char **argv){
                 if(!v) printf("---\n");
             }
         }
+    for(int j = -2; j<=2;j++){
+        for(int i = -2; i<=2;i++){
+            outArr[(int)(round(lightPoint[1]+j)*(sizeOfPaperX)+(int)round(lightPoint[0]+i))] = 0;
+        }
+    }
     /* printf("\n\n\n"); */
     if(v!=3){
         fprintf(writeFile, "P2\n%i %i\n2\n", sizeOfPaperX, sizeOfPaperY);
