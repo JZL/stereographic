@@ -1,5 +1,5 @@
 #http://www.imagemagick.org/Usage/resize/
-size=500
+size=2000
 convert "$1" -resize "$size"x$size^ -gravity center -extent "$size"x$size -shave 1x1 -bordercolor black -border 1 cropped.png
 convert -compress none cropped.png withSpaces.pbm
 sed -i "/#/d" withSpaces.pbm
