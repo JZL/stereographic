@@ -148,8 +148,8 @@ int main(int argc, char **argv){
     struct Ray ray;
 
     Vector v0v1, v0v2, secondAxis;
-    pointSub(verts[0], verts[1], &v0v1);
-    pointSub(verts[0], verts[2], &v0v2);
+    pointSub(verts[1], verts[0], &v0v1);
+    pointSub(verts[2], verts[0], &v0v2);
 
     vectorCross(v0v1, v0v2, &N);
 
@@ -179,7 +179,7 @@ int main(int argc, char **argv){
 
 
 
-    Point lightPoint = {endPoint[0], endPoint[1], 0};
+    Point lightPoint = {endPoint[0], endPoint[1], endPoint[2]};
     printVector(lightPoint, "lightPointBef");
     changeBasis(&lightPoint, CLeftI);
     printVector(lightPoint, "lightPointAft");
@@ -246,8 +246,8 @@ int main(int argc, char **argv){
                     newCordArr[i*ximg+j].Y = ray.P[1];
                 }else{
                     //there will be an open spot at 0,0 but, otherwise, need to store ximg*yimg*sizeof(char OR int) to say if intersects
-                    newCordArr[i*ximg+j].X = 2;
-                    newCordArr[i*ximg+j].Y = 2;
+                    newCordArr[i*ximg+j].X = 0;
+                    newCordArr[i*ximg+j].Y = 0;
                 }
             }
         }
@@ -271,6 +271,9 @@ int main(int argc, char **argv){
     if(minMaxY[1] - minMaxY[0] > sizeOfPaperY){
         printf("WILL OVERFLOW IN Y DIREACTION\n");
     }
+    lightPoint[0] = (lightPoint[0]-minMaxX[0])*changeSize;
+    lightPoint[1] = (lightPoint[1]-minMaxY[0])*changeSize;
+    printVector(lightPoint, "lightPointAft");
     for(int i = 0; i<yimg;i++){
         for(int j = 0; j<ximg;j++){
             int X = newCordArr[i*ximg+j].X;
@@ -279,9 +282,6 @@ int main(int argc, char **argv){
                     X = (X-minMaxX[0])*changeSize;
                     Y = (Y-minMaxY[0])*changeSize;
                     if(X>=0 && X< sizeOfPaperX  && Y>=0 && Y<sizeOfPaperY){
-                        if(fabs(X - lightPoint[0]) > 200 ){
-                            outArr[(int)(round(Y)*(sizeOfPaperX)+(int)round(X))] = 0;
-                        }else{
                         //outArr[(int)(ray.P[1])*(maxOutSide)+(int)(ray.P[0])] = 1;
                         /* if(!v) printf("coords [%i, %i]\n", (int)(round(ray.P[1]+sizeOfPaperY*.5)),(int)round(ray.P[0]+sizeOfPaperX*.5)); */
                         /* outArr[(int)round(ray.P[1]+maxOutSide*.5)*(maxOutSide)+(int)round(ray.P[0]+maxOutSide*.5)] = 0; */
@@ -290,10 +290,9 @@ int main(int argc, char **argv){
                         //outArr[(int)(round((ray.P[1]+200)*1.5+sizeOfPaperY*.5)*(sizeOfPaperX)+(int)round(ray.P[0]+sizeOfPaperX*.5))] = 0;
                         //outArr[(int)(round(ray.P[1]*3.5-150)*(sizeOfPaperX)+(int)round(ray.P[0]*3.5-400))] = 0;
                         outArr[(int)(round(Y)*(sizeOfPaperX)+(int)round(X))] = 0;
-                        }
                     }else{
                         printf("doesn't fit\n");
-                        /* outArr[(int)(round(ray.P[1]+sizeOfPaperY*.5))*(sizeOfPaperX)+(int)round(ray.P[0]+sizeOfPaperX*.5)] = 1; */
+                         outArr[(int)(round(ray.P[1]+sizeOfPaperY*.5))*(sizeOfPaperX)+(int)round(ray.P[0]+sizeOfPaperX*.5)] = 1; 
                     }
                 }
                 /* if(intersects == 1){ */
@@ -315,8 +314,9 @@ int main(int argc, char **argv){
                 if(!v) printf("---\n");
             }
         }
-    for(int j = -2; j<=2;j++){
-        for(int i = -2; i<=2;i++){
+       for(int j = -5; j<=5;j++){
+        for(int i =-5; i<=5;i++){
+            //TODO check if goes off page, shouldn't
             outArr[(int)(round(lightPoint[1]+j)*(sizeOfPaperX)+(int)round(lightPoint[0]+i))] = 0;
         }
     }
