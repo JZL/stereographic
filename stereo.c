@@ -6,22 +6,22 @@
 #include "RayPolygon.h"
 
 //https://cocalc.com/projects/b0966444-8a50-4f2a-a0a7-5d5e6e261ea5/files/2017-06-21-221142.sagews
-void vectorCross(Vector a, Vector b, Vector *c);
-double vectorDot(Vector a, Vector b);
-void pointSub(Point a, Point b, Vector *c);
-double findT(Point *verts, struct Polygon poly, struct Ray ray, int * i_s, Vector N);
-void printVector(Vector v, char* name);
-int maxN(Vector N);
-int abs(int);
-void normalize(Vector);
-void distPoints(Point *a, Point *b);
-void project(Point *p, Vector N);
-void newCoord(struct Polygon poly, Point *P, Vector N);
-void findCLeftI(int C[][2], int CLeftI[][3]);
-void checkThatLeftInverse(int C[][2], int CleftI[][3]);
-void changeBasis(Point *a, int CLeftI[][3]);
+void   vectorCross          (Vector a, Vector b, Vector *c                                          ) ;
+double vectorDot            (Vector a, Vector b                                                     ) ;
+void   pointSub             (Point a, Point b, Vector *c                                            ) ;
+double findT                (Point *verts, struct Polygon poly, struct Ray ray, int * i_s, Vector N ) ;
+void   printVector          (Vector v, char* name                                                   ) ;
+int    maxN                 (Vector N                                                               ) ;
+int    abs                  (int                                                                    ) ;
+void   normalize            (Vector                                                                 ) ;
+void   distPoints           (Point *a, Point *b                                                     ) ;
+void   project              (Point *p, Vector N                                                     ) ;
+void   newCoord             (struct Polygon poly, Point *P, Vector N                                ) ;
+void   findCLeftI           (double C[][2], double CLeftI[][3]                                            ) ;
+void   checkThatLeftInverse (double C[][2], double CleftI[][3]                                            ) ;
+void   changeBasis          (Point *a, double CLeftI[][3]                                              ) ;
+void   findMinMax           (double X, double Y, double *minMaxX, double *minMaxY                   ) ;
 int v = 1;
-void findMinMax(double X, double Y, double *minMaxX, double *minMaxY);
 struct coord2D  {
     double X;
     double Y;
@@ -106,12 +106,37 @@ int main(int argc, char **argv){
     int i_s[2];
     //CHANGE POLY ATTR BELOW
     //NEEDS TO BE IN CIRCULAR ORDER 
+    /*
+    //Triangle
     Point verts[3]= { 
         {ximg*1.0, 0, 0}, 
         {ximg*1.0, yimg*0.6, 0}, 
         //{ximg*1.0, yimg*1.0, ximg*1.0}, 
         {ximg*1.0, 0, ximg*1.2} 
     }; 
+    */
+    //Pentagon
+    float c1 = .25*(sqrt(5)-1);
+    float c2 = .25*(sqrt(5)+1);
+    float s1 = .25*(sqrt(10+2*sqrt(5)));
+    float s2 = .25*(sqrt(10-2*sqrt(5)));
+    Point verts[5]= { 
+        {ximg*1.0,   0, 1},
+        {ximg*1.0, -s1, c1},
+        {ximg*1.0, -s2, -c2},
+        {ximg*1.0,  s2, -c2},
+        {ximg*1.0,  s1, c1},
+    }; 
+    for(int i = 0; i<5;i++){
+        verts[i][1]+=s1+.1;
+        verts[i][2]+=c2+.1;
+        for(int j = 1; j<3;j++){
+            verts[i][j]*=(100);
+        }
+        printVector(verts[i], "vert");
+        //verts[i][3]+=c2; 
+    }
+    printf("--\n");
     /* Point endPoint = {(int)ximg*2, (int)yimg*1, (int)ximg*.5}; */
     /*
        Point verts[4]= {
@@ -139,10 +164,10 @@ int main(int argc, char **argv){
        }
      */
     //Point endPoint = {(ximg)/2, (ximg)/2, 55525};
-    Point endPoint = {(ximg)*1.2, (yimg)*.5, ximg*.55};
+    Point endPoint = {(ximg)*1.5, s1,c2};
 
     struct Polygon poly = {
-        3,
+        5,
         false,
         verts
     };
@@ -170,8 +195,8 @@ int main(int argc, char **argv){
     normalize(secondAxis);
     printVector(secondAxis, "secondAxisNorm");
 
-    int C[3][2];
-    int CLeftI[3][3];
+    double C[3][2];
+    double CLeftI[3][3];
     C[0][0] =v0v1[0]; 
     C[1][0] =v0v1[1]; 
     C[2][0] =v0v1[2]; 
@@ -537,17 +562,17 @@ void newCoord(struct Polygon poly, Point *P, Vector N){
     (*P)[1] = vectorDot(*P,  lastAxis);
 }
 
-void findCLeftI(int C[][2], int CLeftI[][3]){
+void findCLeftI(double C[][2], double CLeftI[][3]){
     //https://math.stackexchange.com/questions/79301/left-inverses-for-matrix
     double det;
     det = C[0][0]*C[2][1]-C[0][1]*C[2][0];
     printf("det02: %f\n", det);
     if(det != 0){
         det = 1/det;
-        CLeftI[0][0] = C[2][1]*det;
+        CLeftI[0][0] =    C[2][1]*det;
         CLeftI[0][2] = -1*C[0][1]*det;
         CLeftI[1][0] = -1*C[2][0]*det;
-        CLeftI[1][2] = C[0][0]*det;
+        CLeftI[1][2] =    C[0][0]*det;
 
         CLeftI[0][1] = 0;
         CLeftI[1][1] = 0;
@@ -556,10 +581,10 @@ void findCLeftI(int C[][2], int CLeftI[][3]){
         printf("det02 was 0 so det01 is %f\n", det);
         if(det != 0){
             det = 1/det;
-            CLeftI[0][0] = C[1][1]*det;
+            CLeftI[0][0] =    C[1][1]*det;
             CLeftI[0][1] = -1*C[0][1]*det;
             CLeftI[1][0] = -1*C[1][0]*det;
-            CLeftI[1][1] = C[0][0]*det;
+            CLeftI[1][1] =    C[0][0]*det;
 
             CLeftI[0][2] = 0;
             CLeftI[1][2] = 0;
@@ -569,10 +594,10 @@ void findCLeftI(int C[][2], int CLeftI[][3]){
             printf("det01 was 0 so det12 is %f\n", det);
             if(det != 0){
                 det = 1/det;
-                CLeftI[0][1] = C[2][1]*det;
+                CLeftI[0][1] =    C[2][1]*det;
                 CLeftI[0][2] = -1*C[1][1]*det;
                 CLeftI[1][1] = -1*C[2][0]*det;
-                CLeftI[1][2] = C[1][0]*det;
+                CLeftI[1][2] =    C[1][0]*det;
 
                 CLeftI[0][0] = 0;
                 CLeftI[1][0] = 0;
@@ -584,30 +609,33 @@ void findCLeftI(int C[][2], int CLeftI[][3]){
     }
     if(!v){
         printf("C: \n");
-        printf("  [[%d, %d],\n", C[0][0],C[0][1]);
-        printf("  [[%d, %d],\n", C[1][0],C[1][1]);
-        printf("  [[%d, %d]]\n", C[2][0],C[2][1]);
+        printf("  [[%f, %f],\n", C[0][0],C[0][1]);
+        printf("  [[%f, %f],\n", C[1][0],C[1][1]);
+        printf("  [[%f, %f]]\n", C[2][0],C[2][1]);
 
         printf("Left Inverse: \n");
-        printf("  [[%d, %d, %d],\n", CLeftI[0][0],CLeftI[0][1],CLeftI[0][2]);
-        printf("  [[%d, %d, %d]]\n", CLeftI[1][0],CLeftI[1][1],CLeftI[1][2]);
+        printf("  [[%f, %f, %f],\n", CLeftI[0][0],CLeftI[0][1],CLeftI[0][2]);
+        printf("  [[%f, %f, %f]]\n", CLeftI[1][0],CLeftI[1][1],CLeftI[1][2]);
     }
     checkThatLeftInverse(C, CLeftI);
 }
 
-void checkThatLeftInverse(int C[][2], int CLeftI[][3]){
+void checkThatLeftInverse(double C[][2], double CLeftI[][3]){
+    double eps = 0.01;
     double a00, a01, a10, a11;
-    a00 = CLeftI[0][0]*C[0][0]+CLeftI[0][1]*C[1][0]+CLeftI[0][2]*C[2][0];
-    a01 = CLeftI[0][0]*C[0][1]+CLeftI[0][1]*C[1][1]+CLeftI[0][2]*C[2][1];
-    a10 = CLeftI[1][0]*C[0][0]+CLeftI[1][1]*C[1][0]+CLeftI[1][2]*C[2][0];
-    a11 = CLeftI[1][0]*C[0][1]+CLeftI[1][1]*C[1][1]+CLeftI[1][2]*C[2][1];
+    a00 = CLeftI[0][0]*C[0][0]+CLeftI[0][1]*C[1][0]+CLeftI[0][2]*C[2][0]+0.0;
+    a01 = CLeftI[0][0]*C[0][1]+CLeftI[0][1]*C[1][1]+CLeftI[0][2]*C[2][1]+0.0;
+    a01 = fabs(a01);
+    a10 = CLeftI[1][0]*C[0][0]+CLeftI[1][1]*C[1][0]+CLeftI[1][2]*C[2][0]+0.0;
+    a01 = fabs(a01);
+    a11 = CLeftI[1][0]*C[0][1]+CLeftI[1][1]*C[1][1]+CLeftI[1][2]*C[2][1]+0.0;
     printf("Left Inverse: \n");
-    printf("  [[%d, %d, %d],\n", CLeftI[0][0],CLeftI[0][1],CLeftI[0][2]);
-    printf("  [[%d, %d, %d]]\n", CLeftI[1][0],CLeftI[1][1],CLeftI[1][2]);
+    printf("  [[%f, %f, %f],\n", CLeftI[0][0],CLeftI[0][1],CLeftI[0][2]);
+    printf("  [[%f, %f, %f]]\n", CLeftI[1][0],CLeftI[1][1],CLeftI[1][2]);
     printf("checkLeftInverse: \n");
-    printf("  [[%f, %f],\n", a00, a01);
-    printf("  [[%f, %f]]\n", a10, a11);
-    if(!(a00==1 && a01==0 && a10==0 && a11==1)){
+    printf("  [[%a, %a],\n", a00, a01);
+    printf("  [[%a, %a]]\n", a10, a11);
+    if(!((fabs(a00-1)<eps && fabs(a01-0.0)<eps && fabs(a10-0.0)<eps && fabs(a11-1.0)<eps))){
         printf("LeftC isn't a left inverse\n");
         exit(1);
     }else{
@@ -615,14 +643,14 @@ void checkThatLeftInverse(int C[][2], int CLeftI[][3]){
     }
 }
 
-void changeBasis(Point *a, int CLeftI[][3]){
+void changeBasis(Point *a, double CLeftI[][3]){
     double tmpa0;
     if(!v){
         printf("Left Inverse: \n");
-        printf("  [[%d, %d, %d],\n", CLeftI[0][0],CLeftI[0][1],CLeftI[0][2]);
-        printf("  [[%d, %d, %d]]\n", CLeftI[1][0],CLeftI[1][1],CLeftI[1][2]);
+        printf("  [[%f, %f, %f],\n", CLeftI[0][0],CLeftI[0][1],CLeftI[0][2]);
+        printf("  [[%f, %f, %f]]\n", CLeftI[1][0],CLeftI[1][1],CLeftI[1][2]);
     }
-    tmpa0= CLeftI[0][0]*(*a)[0]+CLeftI[0][1]*(*a)[1]+CLeftI[0][2]*(*a)[2];
+       tmpa0= CLeftI[0][0]*(*a)[0]+CLeftI[0][1]*(*a)[1]+CLeftI[0][2]*(*a)[2];
     (*a)[1] = CLeftI[1][0]*(*a)[0]+CLeftI[1][1]*(*a)[1]+CLeftI[1][2]*(*a)[2];
     (*a)[2] = 0;
     (*a)[0] = tmpa0;
