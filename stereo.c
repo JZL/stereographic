@@ -35,7 +35,7 @@ int main(int argc, char **argv){
 
     double minMaxX[2];
     double minMaxY[2];
-    int scale=1; //if make 1, will scale to take up (with 1:1 scaling), the output size
+    int scale=0; //if make 1, will scale to take up (with 1:1 scaling), the output size
 
     int firstTime = 1; //for findingMinMax, if first run through loop
     //can't be i && j == 0 bc the value at [i][j] might not be == 1
@@ -53,7 +53,7 @@ int main(int argc, char **argv){
         printf("Error reading file\n");
         exit(1);
     }
-    writeFile = fopen("out.pgm", "w");
+    writeFile = fopen("out/out.pgm", "w");
     if(writeFile == NULL){
         printf("couldn't write to file");
     }
@@ -86,12 +86,12 @@ int main(int argc, char **argv){
     }
 
 
-    struct coord2D *newCordArr = malloc(sizeof(struct coord2D)*yimg*ximg);
+    struct coord2D *newCoordArr = malloc(sizeof(struct coord2D)*yimg*ximg);
 
     /* printf("%c\n", imgArr[115*(width)+5]); */
     //arr[i*width+j]
-    int sizeOfPaperY = 1000;
-    int sizeOfPaperX = 1000;
+    int sizeOfPaperY = 500;
+    int sizeOfPaperX = sizeOfPaperY;
     int *outArr = malloc(sizeof(int)*sizeOfPaperX*sizeOfPaperY);
     for(int i = 0; i<sizeOfPaperY;i++){
         for(int j = 0; j<sizeOfPaperX;j++){
@@ -105,49 +105,54 @@ int main(int argc, char **argv){
     bool intersects;
     int i_s[2];
     //CHANGE POLY ATTR BELOW
-     Point verts[4]= { 
-         {ximg*1.0, 0, 0}, 
-         {ximg*1.0, yimg*1.0, 0}, 
-         {ximg*1.0, 0, ximg*1}, 
-         {ximg*1.0, yimg*1.0, ximg*1}, 
-     }; 
+    //NEEDS TO BE IN CIRCULAR ORDER 
+    Point verts[3]= { 
+        {ximg*1.0, 0, 0}, 
+        {ximg*1.0, yimg*0.6, 0}, 
+        //{ximg*1.0, yimg*1.0, ximg*1.0}, 
+        {ximg*1.0, 0, ximg*1.2} 
+    }; 
     /* Point endPoint = {(int)ximg*2, (int)yimg*1, (int)ximg*.5}; */
     /*
-    Point verts[4]= {
-        {0,0,0},
-        {0,0, 125},
-        {125,0,0},
-        {125,0,125}
-    };
-    */
+       Point verts[4]= {
+       {0,0,0},
+       {0,0, 125},
+       {125,0,0},
+       {125,0,125}
+       };
+     */
     /*
-    Point verts[4]= {
-        {0,0,20},
-        {ximg, 0, 20},
-        {ximg, yimg, 20},
-        {0, yimg, 20},
-    };
-    */
+       Point verts[4]= {
+       {0,0,20},
+       {ximg, 0, 20},
+       {ximg, yimg, 20},
+       {0, yimg, 20},
+       };
+     */
 
     /*
-    for(int i =0; i<4;i++){
-        verts[i][0]*=2;
-        verts[i][1]*=2;
-        verts[i][0]+=(ximg/2-(125/2));
-        verts[i][1]+=(yimg/2-(125/2));
-    }
-    */
+       for(int i =0; i<4;i++){
+       verts[i][0]*=2;
+       verts[i][1]*=2;
+       verts[i][0]+=(ximg/2-(125/2));
+       verts[i][1]+=(yimg/2-(125/2));
+       }
+     */
     //Point endPoint = {(ximg)/2, (ximg)/2, 55525};
-    Point endPoint = {(ximg)*1.5, (yimg)*.5, ximg*.5};
+    Point endPoint = {(ximg)*1.2, (yimg)*.5, ximg*.55};
 
     struct Polygon poly = {
-        4,
+        3,
         false,
         verts
     };
     struct Ray ray;
 
     Vector v0v1, v0v2, secondAxis;
+    /*
+       pointSub(verts[1], verts[0], &v0v1);
+       pointSub(verts[2], verts[0], &v0v2);
+     */
     pointSub(verts[1], verts[0], &v0v1);
     pointSub(verts[2], verts[0], &v0v2);
 
@@ -183,13 +188,23 @@ int main(int argc, char **argv){
     printVector(lightPoint, "lightPointBef");
     changeBasis(&lightPoint, CLeftI);
     printVector(lightPoint, "lightPointAft");
+    /*
+    //firsttime is redundant but if delete lightpoint, don't want to forget
+    if(firstTime == 1){
+    //set minMax with init values
+    minMaxX[0] = ray.P[0];
+    minMaxX[1] = ray.P[0];
+    minMaxY[0] = ray.P[1];
+    minMaxY[1] = ray.P[1];
+    firstTime = 0;
+    }
+    findMinMax(lightPoint[0], lightPoint[1], minMaxX, minMaxY);
+     */
 
-    //everything in pixel width
-    /* printf("x: %i, y: %i\n", width, height); */
     for(int i = 0; i<yimg;i++){
         for(int j = 0; j<ximg;j++){
-            newCordArr[i*ximg+j].X = 0;
-            newCordArr[i*ximg+j].Y = 0;
+            newCoordArr[i*ximg+j].X = 0;
+            newCoordArr[i*ximg+j].Y = 0;
             //todo
             if(imgArr[i*ximg+j] == '1'){
                 ray.O[0] = j;//x
@@ -242,21 +257,58 @@ int main(int argc, char **argv){
                 }
                 findMinMax(ray.P[0], ray.P[1], minMaxX, minMaxY);
                 if(intersects == 1){
-                    newCordArr[i*ximg+j].X = ray.P[0];
-                    newCordArr[i*ximg+j].Y = ray.P[1];
+                    newCoordArr[i*ximg+j].X = ray.P[0];
+                    newCoordArr[i*ximg+j].Y = ray.P[1];
                 }else{
-                    //there will be an open spot at 0,0 but, otherwise, need to store ximg*yimg*sizeof(char OR int) to say if intersects
-                    newCordArr[i*ximg+j].X = 0;
-                    newCordArr[i*ximg+j].Y = 0;
+                    //there will be an closed spot at 0,0 but, otherwise, need to store ximg*yimg*sizeof(char OR int) extra bytes to say if intersects
+                    newCoordArr[i*ximg+j].X = 0;
+                    newCoordArr[i*ximg+j].Y = 0;
                 }
             }
         }
     }
-    
+    //The points need to be in the circular order
+    Point a, b;
+    Vector m;
+    int numSteps = 400;
+    double changeSize = 1;
+    struct coord2D *outlineArr = malloc(sizeof(struct coord2D)*(poly.n)*numSteps);
+    printf("====================================================================\n");
+    for(int i = 0; i<(poly.n); i++){
+        a[0] = verts[i][0];
+        a[1] = verts[i][1];
+        a[2] = verts[i][2];
 
+        b[0] = verts[(i+1)%poly.n][0];
+        b[1] = verts[(i+1)%poly.n][1];
+        b[2] = verts[(i+1)%poly.n][2];
+
+        printf("\ngoing between %i and %i\n", i, (i+1)%poly.n);
+        printVector(a, "vertA");
+        printVector(b, "vertB");
+
+        changeBasis(&a, CLeftI);
+        changeBasis(&b, CLeftI);
+
+        printVector(a, "vertA");
+        printVector(b, "vertB");
+
+        pointSub(a, b, &m);
+        printVector(m, "m");
+
+        for(int t = 0; t<numSteps;t++){
+            printf("%i,", t);
+            fflush(stdout);
+            double newX = a[0]+m[0]*((float)t/numSteps);
+            double newY = a[1]+m[1]*((float)t/numSteps);
+
+            findMinMax(newX, newY, minMaxX, minMaxY);
+            outlineArr[(numSteps*i+t)].X = newX;
+            outlineArr[(numSteps*i+t)].Y = newY;
+        }
+    }
     double changeXSize = (sizeOfPaperX/(minMaxX[1] - minMaxX[0]));
     double changeYSize = (sizeOfPaperY/(minMaxY[1] - minMaxY[0]));
-    double changeSize = 0;
     if(changeXSize< changeYSize){
         changeSize = changeXSize;
     }else{
@@ -265,6 +317,20 @@ int main(int argc, char **argv){
     if(scale == 0){
         changeSize = 1;
     }
+    printf("\nminMax0: %f, %f", minMaxX[0], minMaxY[0]);
+    for(int i = 0; i<(poly.n*numSteps);i++){
+        outlineArr[i].X =  (outlineArr[i].X-minMaxX[0])*changeSize;
+        outlineArr[i].Y =  (outlineArr[i].Y-minMaxY[0])*changeSize;
+        printf("(%f, %f)\n", outlineArr[i].X, outlineArr[i].Y);
+        if( outlineArr[i].X>=sizeOfPaperX||outlineArr[i].X<0||
+            outlineArr[i].Y>=sizeOfPaperY||outlineArr[i].Y<0){
+            printf("breaking");
+            continue;
+        }
+        outArr[((int)(outlineArr[i].Y)*(sizeOfPaperX))+(int)(outlineArr[i].X)] = 1;
+    }
+
+
     if(minMaxX[1] - minMaxX[0] > sizeOfPaperX){
         printf("WILL OVERFLOW IN X DIREACTION\n");
     }
@@ -276,48 +342,49 @@ int main(int argc, char **argv){
     printVector(lightPoint, "lightPointAft");
     for(int i = 0; i<yimg;i++){
         for(int j = 0; j<ximg;j++){
-            int X = newCordArr[i*ximg+j].X;
-            int Y = newCordArr[i*ximg+j].Y;
-                if(!(X==0 && Y==0)){
-                    X = (X-minMaxX[0])*changeSize;
-                    Y = (Y-minMaxY[0])*changeSize;
-                    if(X>=0 && X< sizeOfPaperX  && Y>=0 && Y<sizeOfPaperY){
-                        //outArr[(int)(ray.P[1])*(maxOutSide)+(int)(ray.P[0])] = 1;
-                        /* if(!v) printf("coords [%i, %i]\n", (int)(round(ray.P[1]+sizeOfPaperY*.5)),(int)round(ray.P[0]+sizeOfPaperX*.5)); */
-                        /* outArr[(int)round(ray.P[1]+maxOutSide*.5)*(maxOutSide)+(int)round(ray.P[0]+maxOutSide*.5)] = 0; */
+            int X = newCoordArr[i*ximg+j].X;
+            int Y = newCoordArr[i*ximg+j].Y;
+            if(!(X==0 && Y==0)){
+                X = (X-minMaxX[0])*changeSize;
+                Y = (Y-minMaxY[0])*changeSize;
+                if(X>=0 && X< sizeOfPaperX  && Y>=0 && Y<sizeOfPaperY){
+                    //outArr[(int)(ray.P[1])*(maxOutSide)+(int)(ray.P[0])] = 1;
+                    /* if(!v) printf("coords [%i, %i]\n", (int)(round(ray.P[1]+sizeOfPaperY*.5)),(int)round(ray.P[0]+sizeOfPaperX*.5)); */
+                    /* outArr[(int)round(ray.P[1]+maxOutSide*.5)*(maxOutSide)+(int)round(ray.P[0]+maxOutSide*.5)] = 0; */
 
-                        //outArr[(int)(round(ray.P[1]*1.5+sizeOfPaperY*.5+200)*(sizeOfPaperX)+(int)round(ray.P[0]*2+sizeOfPaperX*.5-200))] = 0;
-                        //outArr[(int)(round((ray.P[1]+200)*1.5+sizeOfPaperY*.5)*(sizeOfPaperX)+(int)round(ray.P[0]+sizeOfPaperX*.5))] = 0;
-                        //outArr[(int)(round(ray.P[1]*3.5-150)*(sizeOfPaperX)+(int)round(ray.P[0]*3.5-400))] = 0;
-                        outArr[(int)(round(Y)*(sizeOfPaperX)+(int)round(X))] = 0;
-                    }else{
-                        printf("doesn't fit\n");
-                         outArr[(int)(round(ray.P[1]+sizeOfPaperY*.5))*(sizeOfPaperX)+(int)round(ray.P[0]+sizeOfPaperX*.5)] = 1; 
-                    }
+                    //outArr[(int)(round(ray.P[1]*1.5+sizeOfPaperY*.5+200)*(sizeOfPaperX)+(int)round(ray.P[0]*2+sizeOfPaperX*.5-200))] = 0;
+                    //outArr[(int)(round((ray.P[1]+200)*1.5+sizeOfPaperY*.5)*(sizeOfPaperX)+(int)round(ray.P[0]+sizeOfPaperX*.5))] = 0;
+                    //outArr[(int)(round(ray.P[1]*3.5-150)*(sizeOfPaperX)+(int)round(ray.P[0]*3.5-400))] = 0;
+                    outArr[(int)(round(Y)*(sizeOfPaperX)+(int)round(X))] = 0;
+                }else{
+                    //TODO
+                    printf("doesn't fit\n");
+                    //outArr[(int)(round(ray.P[1]+sizeOfPaperY*.5))*(sizeOfPaperX)+(int)round(ray.P[0]+sizeOfPaperX*.5)] = 1; 
                 }
-                /* if(intersects == 1){ */
-                /*     if(!v){ */
-                /*         printVector(ray.P, "P  "); */
-                /*     } */
-                /*     /1* ray.P[0] = ray.O[0] + ray.D[0] * t; *1/ */
-                /*     /1* ray.P[1] = ray.O[1] + ray.D[1] * t; *1/ */
-                /*     /1* ray.P[2] = ray.O[2] + ray.D[2] * t; *1/ */
-
-                /*     if(ray.P[0]< maxOutSide && ray.P[0]>=0 && ray.P[1]< maxOutSide && ray.P[1]>=0){ */
-                /*         outArr[(int)(ray.P[1])*(maxOutSide)+(int)(ray.P[0])] = 1; */
-                /*     }else{ */
-                /*         outArr[(int)(ray.P[1])*(maxOutSide)+(int)(ray.P[0])] = 0; */
-                /*     } */
-                /* }else{ */
-                /*     outArr[(int)(ray.P[1])*(maxOutSide)+(int)(ray.P[0])] = 0; */
-                /* } */
-                if(!v) printf("---\n");
             }
+            /* if(intersects == 1){ */
+            /*     if(!v){ */
+            /*         printVector(ray.P, "P  "); */
+            /*     } */
+            /*     /1* ray.P[0] = ray.O[0] + ray.D[0] * t; *1/ */
+            /*     /1* ray.P[1] = ray.O[1] + ray.D[1] * t; *1/ */
+            /*     /1* ray.P[2] = ray.O[2] + ray.D[2] * t; *1/ */
+
+            /*     if(ray.P[0]< maxOutSide && ray.P[0]>=0 && ray.P[1]< maxOutSide && ray.P[1]>=0){ */
+            /*         outArr[(int)(ray.P[1])*(maxOutSide)+(int)(ray.P[0])] = 1; */
+            /*     }else{ */
+            /*         outArr[(int)(ray.P[1])*(maxOutSide)+(int)(ray.P[0])] = 0; */
+            /*     } */
+            /* }else{ */
+            /*     outArr[(int)(ray.P[1])*(maxOutSide)+(int)(ray.P[0])] = 0; */
+            /* } */
+            if(!v) printf("---\n");
         }
-       for(int j = -5; j<=5;j++){
+    }
+    for(int j = -5; j<=5;j++){
         for(int i =-5; i<=5;i++){
             //TODO check if goes off page, shouldn't
-            outArr[(int)(round(lightPoint[1]+j)*(sizeOfPaperX)+(int)round(lightPoint[0]+i))] = 0;
+            //outArr[(int)(round(lightPoint[1]+j)*(sizeOfPaperX)+(int)round(lightPoint[0]+i))] = 0;
         }
     }
     /* printf("\n\n\n"); */
@@ -326,13 +393,15 @@ int main(int argc, char **argv){
         for(int j = 0; j<sizeOfPaperY;j++){
             for(int i = 0; i<sizeOfPaperX;i++){
                 if(i == sizeOfPaperX/2 || j == sizeOfPaperY/2){
-                    fprintf(writeFile, "2 ");
+                    //TODO
+                    //fprintf(writeFile, "1 ");
                 }else{
                     /* printf("i: %i, j: %i, maxOutSide: %i\n", i, j, maxOutSide); */
                     //printf("%i ", outArr[i*(maxOutSide)+j]);
-                    fprintf(writeFile, "%i ", outArr[j*(sizeOfPaperX)+i]);
+                    //fprintf(writeFile, "%i ", outArr[j*(sizeOfPaperX)+i]);
                     /* fflush(stdout); */
                 }
+                fprintf(writeFile, "%i ", outArr[j*(sizeOfPaperX)+i]);
             }
             fprintf(writeFile, "\n");
         }
@@ -341,7 +410,8 @@ int main(int argc, char **argv){
 
     free(imgArr);
     free(outArr);
-    free(newCordArr);
+    free(newCoordArr);
+    free(outlineArr);
     fclose(fp);
 
 }
