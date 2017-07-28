@@ -15,7 +15,7 @@ void printVector(Vector v, char* name);
 /* Added to make it compile */
 
 bool intersect(struct Polygon *poly, struct Ray *ray, float t, int i1, int i2, int v) {
-	float alpha, beta,  u0, u1, u2, v0, v1, v2; //gamma
+	double alpha, beta,  u0, u1, u2, v0, v1, v2; //gamma
 	bool inter;
 	int i;
     Point *V = poly->V;
@@ -38,8 +38,10 @@ bool intersect(struct Polygon *poly, struct Ray *ray, float t, int i1, int i2, i
 	inter = false; i = 2;
 	do {
 		/* The polygon is viewed as (n-2) triangles. */
-		u1 = V[i - 1][i1] - V[0][i1]; v1 = V[i - 1][i2] - V[0][i2];
-		u2 = V[i][i1] - V[0][i1]; v2 = V[i][i2] - V[0][i2];
+		u1 = V[i-1][i1] - V[0][i1];
+        v1 = V[i-1][i2] - V[0][i2];
+		u2 = V[i  ][i1] - V[0][i1];
+        v2 = V[i  ][i2] - V[0][i2];
 
 		if (u1 == 0) {
 			beta = u0 / u2;

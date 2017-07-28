@@ -114,13 +114,14 @@ int main(int argc, char **argv){
         //{ximg*1.0, yimg*1.0, ximg*1.0}, 
         {ximg*1.0, 0, ximg*1.2} 
     }; 
+    Point endPoint = {(ximg)*1.2,yimg*.5, ximg*.55};
     */
     //Pentagon
     float c1 = .25*(sqrt(5)-1);
     float c2 = .25*(sqrt(5)+1);
     float s1 = .25*(sqrt(10+2*sqrt(5)));
     float s2 = .25*(sqrt(10-2*sqrt(5)));
-    Point verts[5]= { 
+    Point verts[5]={ 
         {ximg*1.0,   0, 1},
         {ximg*1.0, -s1, c1},
         {ximg*1.0, -s2, -c2},
@@ -128,14 +129,15 @@ int main(int argc, char **argv){
         {ximg*1.0,  s1, c1},
     }; 
     for(int i = 0; i<5;i++){
-        verts[i][1]+=s1+.1;
-        verts[i][2]+=c2+.1;
+        verts[i][1]+=s1;//+.1;
+        verts[i][2]+=c2;//+.1;
         for(int j = 1; j<3;j++){
-            verts[i][j]*=(100);
+            verts[i][j]*=(200);
         }
         printVector(verts[i], "vert");
         //verts[i][3]+=c2; 
     }
+    Point endPoint = {(ximg)*1.5,200,200};
     printf("--\n");
     /* Point endPoint = {(int)ximg*2, (int)yimg*1, (int)ximg*.5}; */
     /*
@@ -163,12 +165,10 @@ int main(int argc, char **argv){
        verts[i][1]+=(yimg/2-(125/2));
        }
      */
-    //Point endPoint = {(ximg)/2, (ximg)/2, 55525};
-    Point endPoint = {(ximg)*1.5, s1,c2};
 
     struct Polygon poly = {
         5,
-        false,
+        0,
         verts
     };
     struct Ray ray;
@@ -228,6 +228,7 @@ int main(int argc, char **argv){
 
     for(int i = 0; i<yimg;i++){
         for(int j = 0; j<ximg;j++){
+            if(!v)printf("----->\n");
             newCoordArr[i*ximg+j].X = 0;
             newCoordArr[i*ximg+j].Y = 0;
             //todo
@@ -245,7 +246,6 @@ int main(int argc, char **argv){
                 normalize(ray.D);
                 if(!v)printf("rayDlengthA: %f\n", (ray.D[0]*ray.D[0]+ray.D[1]*ray.D[1]+ray.D[2]*ray.D[2]));
                 if(!v){
-                    printf("-----\n");
                     printVector(ray.O, "O  ");
                     printVector(endPoint, "End");
                     printVector(ray.D, "D  ");
@@ -260,17 +260,17 @@ int main(int argc, char **argv){
                     }
                     continue;
                 } 
-                /* printf("i_1: %i, i_2:%i\n", i_s[0], i_s[1]); */
+                 if(!v)printf("i_1: %i, i_2:%i\n", i_s[0], i_s[1]); 
 
                 intersects = intersect(&poly, &ray, t, i_s[0], i_s[1], v);
 
                 if(!v){ printVector(ray.P, "rayPB");}
+                if(v==4)fprintf(writeFile, "%f,%f,%f\n", ray.P[0], ray.P[1], ray.P[2] );
                 //distPoints(&(verts[0]), &ray.P);
                 //newCoord(poly, &ray.P, N);
                 changeBasis(&ray.P, CLeftI);
-                if(v==3)fprintf(writeFile, "%f,%f,%f\n", ray.P[0], ray.P[1], ray.P[2] );
                 if(!v) printVector(ray.P, "rayPA");
-                if(!v) printf("intersects? %d\n", intersects);
+                if(!v) printf(".5intersects? %d\n", intersects);
                 if(!v) printVector(ray.P, "rayPAfterAdd");
                 if(firstTime == 1){
                     //set minMax with init values
@@ -282,10 +282,12 @@ int main(int argc, char **argv){
                 }
                 findMinMax(ray.P[0], ray.P[1], minMaxX, minMaxY);
                 if(intersects == 1){
+                    printf("=");
                     newCoordArr[i*ximg+j].X = ray.P[0];
                     newCoordArr[i*ximg+j].Y = ray.P[1];
                 }else{
                     //there will be an closed spot at 0,0 but, otherwise, need to store ximg*yimg*sizeof(char OR int) extra bytes to say if intersects
+                    printf("-");
                     newCoordArr[i*ximg+j].X = 0;
                     newCoordArr[i*ximg+j].Y = 0;
                 }
@@ -346,7 +348,7 @@ int main(int argc, char **argv){
     for(int i = 0; i<(poly.n*numSteps);i++){
         outlineArr[i].X =  (outlineArr[i].X-minMaxX[0])*changeSize;
         outlineArr[i].Y =  (outlineArr[i].Y-minMaxY[0])*changeSize;
-        printf("(%f, %f)\n", outlineArr[i].X, outlineArr[i].Y);
+        //printf("(%f, %f)\n", outlineArr[i].X, outlineArr[i].Y);
         if( outlineArr[i].X>=sizeOfPaperX||outlineArr[i].X<0||
             outlineArr[i].Y>=sizeOfPaperY||outlineArr[i].Y<0){
             printf("breaking");
@@ -365,13 +367,16 @@ int main(int argc, char **argv){
     lightPoint[0] = (lightPoint[0]-minMaxX[0])*changeSize;
     lightPoint[1] = (lightPoint[1]-minMaxY[0])*changeSize;
     printVector(lightPoint, "lightPointAft");
+    double X,Y;
     for(int i = 0; i<yimg;i++){
         for(int j = 0; j<ximg;j++){
-            int X = newCoordArr[i*ximg+j].X;
-            int Y = newCoordArr[i*ximg+j].Y;
+            X = newCoordArr[i*ximg+j].X;
+            Y = newCoordArr[i*ximg+j].Y;
+
+            X = (X-minMaxX[0])*changeSize;
+            Y = (Y-minMaxY[0])*changeSize;
+            if(v==5)printf("FINAL COORD: (%f, %f)\n", X, Y);
             if(!(X==0 && Y==0)){
-                X = (X-minMaxX[0])*changeSize;
-                Y = (Y-minMaxY[0])*changeSize;
                 if(X>=0 && X< sizeOfPaperX  && Y>=0 && Y<sizeOfPaperY){
                     //outArr[(int)(ray.P[1])*(maxOutSide)+(int)(ray.P[0])] = 1;
                     /* if(!v) printf("coords [%i, %i]\n", (int)(round(ray.P[1]+sizeOfPaperY*.5)),(int)round(ray.P[0]+sizeOfPaperX*.5)); */
@@ -380,10 +385,11 @@ int main(int argc, char **argv){
                     //outArr[(int)(round(ray.P[1]*1.5+sizeOfPaperY*.5+200)*(sizeOfPaperX)+(int)round(ray.P[0]*2+sizeOfPaperX*.5-200))] = 0;
                     //outArr[(int)(round((ray.P[1]+200)*1.5+sizeOfPaperY*.5)*(sizeOfPaperX)+(int)round(ray.P[0]+sizeOfPaperX*.5))] = 0;
                     //outArr[(int)(round(ray.P[1]*3.5-150)*(sizeOfPaperX)+(int)round(ray.P[0]*3.5-400))] = 0;
-                    outArr[(int)(round(Y)*(sizeOfPaperX)+(int)round(X))] = 0;
+                    outArr[(int)(round(Y))*(sizeOfPaperX)+(int)round(X)] = 0;
+                    //printf("@");
                 }else{
                     //TODO
-                    printf("doesn't fit\n");
+                    //printf("-");
                     //outArr[(int)(round(ray.P[1]+sizeOfPaperY*.5))*(sizeOfPaperX)+(int)round(ray.P[0]+sizeOfPaperX*.5)] = 1; 
                 }
             }
@@ -409,11 +415,11 @@ int main(int argc, char **argv){
     for(int j = -5; j<=5;j++){
         for(int i =-5; i<=5;i++){
             //TODO check if goes off page, shouldn't
-            //outArr[(int)(round(lightPoint[1]+j)*(sizeOfPaperX)+(int)round(lightPoint[0]+i))] = 0;
+            outArr[(int)(round(lightPoint[1]+j)*(sizeOfPaperX)+(int)round(lightPoint[0]+i))] = 0;
         }
     }
     /* printf("\n\n\n"); */
-    if(v!=3){
+    if(v!=4){
         fprintf(writeFile, "P2\n%i %i\n2\n", sizeOfPaperX, sizeOfPaperY);
         for(int j = 0; j<sizeOfPaperY;j++){
             for(int i = 0; i<sizeOfPaperX;i++){
@@ -442,7 +448,7 @@ int main(int argc, char **argv){
 }
 double findT(Point *verts, struct Polygon poly, struct Ray ray, int *i_s, Vector N){
     double d, t, N_dot_D;
-    int maxOfN;
+    int maxNi;
     d = vectorDot(verts[0], N);
     d = -1*d;
 
@@ -460,23 +466,24 @@ double findT(Point *verts, struct Polygon poly, struct Ray ray, int *i_s, Vector
     }
     t = -1*(d+vectorDot(N, ray.O))/(vectorDot(N, ray.D));
 
-    maxOfN = maxN(N);
+    maxNi = maxN(N);
     if(!v){
-        printf("maxOfN: %d\n", maxOfN);
-        printf("N_S: %f, %f, %f\n", (N)[0], (N)[1], (N)[2]);
+        printf("maxNi: %d\n", maxNi);
+        printf("N_S: %f, %f, %f\n", N[0], N[1], N[2]);
     }
-    if((N)[0] == maxOfN){
-        if(!v)printf("0 is maxOfN\n");
-        i_s[0] = 1;
-        i_s[1] = 2;
-    }else if((N)[1] == maxOfN){
-        if(!v)printf("1 is maxOfN\n");
-        i_s[0] = 0;
-        i_s[1] = 2;
-    }else{
-        if(!v)printf("2 is maxOfN\n");
-        i_s[0] = 0;
-        i_s[1] = 1;
+    switch(maxNi){
+        case 0:
+            i_s[0] = 1;
+            i_s[1] = 2;
+            break;
+        case 1:
+            i_s[0] = 0;
+            i_s[1] = 2;
+            break;
+        case 2:
+            i_s[0] = 0;
+            i_s[1] = 1;
+            break;
     }
 
     return t;
@@ -510,11 +517,11 @@ int maxN(Vector N){
     absN1 = fabs(N[1]);
     absN2 = fabs(N[2]);
     if(absN0 >= absN1 && absN0>=absN2){
-        return N[0];
+        return 0;
     }else if(absN1 >= absN2 && absN1>=absN2){
-        return N[1];
+        return 1;
     }else{
-        return N[2];
+        return 2;
     }
 }
 
@@ -625,9 +632,7 @@ void checkThatLeftInverse(double C[][2], double CLeftI[][3]){
     double a00, a01, a10, a11;
     a00 = CLeftI[0][0]*C[0][0]+CLeftI[0][1]*C[1][0]+CLeftI[0][2]*C[2][0]+0.0;
     a01 = CLeftI[0][0]*C[0][1]+CLeftI[0][1]*C[1][1]+CLeftI[0][2]*C[2][1]+0.0;
-    a01 = fabs(a01);
     a10 = CLeftI[1][0]*C[0][0]+CLeftI[1][1]*C[1][0]+CLeftI[1][2]*C[2][0]+0.0;
-    a01 = fabs(a01);
     a11 = CLeftI[1][0]*C[0][1]+CLeftI[1][1]*C[1][1]+CLeftI[1][2]*C[2][1]+0.0;
     printf("Left Inverse: \n");
     printf("  [[%f, %f, %f],\n", CLeftI[0][0],CLeftI[0][1],CLeftI[0][2]);
@@ -652,8 +657,8 @@ void changeBasis(Point *a, double CLeftI[][3]){
     }
        tmpa0= CLeftI[0][0]*(*a)[0]+CLeftI[0][1]*(*a)[1]+CLeftI[0][2]*(*a)[2];
     (*a)[1] = CLeftI[1][0]*(*a)[0]+CLeftI[1][1]*(*a)[1]+CLeftI[1][2]*(*a)[2];
-    (*a)[2] = 0;
     (*a)[0] = tmpa0;
+    (*a)[2] = 0;
 }
 void findMinMax(double X, double Y, double *minMaxX, double *minMaxY){
     if(X < minMaxX[0]){
