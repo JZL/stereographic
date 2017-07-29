@@ -54,16 +54,15 @@ pprint(N)
 pprint(np.transpose(N)[0])
 """
 coords = [rotateXYZ(x, R) for x in coordsO]
-minX = min([x[0] for x in coords])
-print(minX)
-coords = [[x[0]-minX]+ x[1:] for x in coords]
-print("Coordinates of icosahedron:")
-pprint([x[0:3] for x in coords])
 
-print([coords[2]]+[coords[3]]+[coords[11]])
 centerBottom = map(sum, zip(*([coords[2]][0:3]+[coords[3]][0:3]+[coords[11][0:3]])))
 centerBottom = [x/3 for x in centerBottom]
-print(centerBottom)
+for i in range(0,len(coords)):
+    for x in range(0,3):
+        coords[i][x]-=centerBottom[x]
+    
+print("Coordinates of icosahedron:")
+pprint([x[0:3] for x in coords])
 """
  To see if unique, copy this, paste in terminal, then copy the indicies
  pp | sed "s/[^0-9,]//g"|while read line; do echo $line | sed 's/,/\n/g' | sort | awk '{line=line" "$0} END {print line}' ; done|sort|uniq -d
@@ -120,7 +119,6 @@ for x in range(0, len(xs)):
     #label = '#%d (%f, %f, %f)' % (ls, x, y, z)
     ax.text(xs[x], ys[x], zs[x], ls[x])
 #ax.scatter(xs, ys, zs, linewidth=5)
-print(np.reshape(centerBottom, (-1,1)))
 ax.scatter(*np.reshape(centerBottom, (-1,1)))
 pyplot.show()
 
