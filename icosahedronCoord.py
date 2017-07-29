@@ -57,8 +57,8 @@ coords = [rotateXYZ(x, R) for x in coordsO]
 
 centerBottom = map(sum, zip(*([coords[2]][0:3]+[coords[3]][0:3]+[coords[11][0:3]])))
 centerBottom = [x/3 for x in centerBottom]
-for i in range(0,len(coords)):
-    for x in range(0,3):
+for i in range(len(coords)):
+    for x in range(3):
         coords[i][x]-=centerBottom[x]
     
 print("Coordinates of icosahedron:")
@@ -91,11 +91,11 @@ faces = [
          [10,  7, 11]
         ]
 
-for i in range(0, len(faces)):
+for i in range(len(faces)):
     xs = []
     ys = []
     zs = []
-    for j in range(0, len(faces[i])+1):
+    for j in range(len(faces[i])+1):
         x = coords[faces[i][(j%len(faces[i]))]-1][0]
         y = coords[faces[i][(j%len(faces[i]))]-1][1]
         z = coords[faces[i][(j%len(faces[i]))]-1][2]
@@ -115,7 +115,7 @@ xs = [x[0] for x in coords]
 ys = [x[1] for x in coords]
 zs = [x[2] for x in coords]
 ls = [x[3] for x in coords]
-for x in range(0, len(xs)):
+for x in range(len(xs)):
     #label = '#%d (%f, %f, %f)' % (ls, x, y, z)
     ax.text(xs[x], ys[x], zs[x], ls[x])
 #ax.scatter(xs, ys, zs, linewidth=5)
