@@ -14,4 +14,9 @@ struct Polygon {
 
 };
 
+struct coord2D {
+        double X;
+        double Y;
+};
+
 bool intersect(struct Polygon *poly, struct Ray *ray, float t, int i1, int i2, int v);
