@@ -3,6 +3,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 from pprint import pprint
 import math
+import colorsys
 
 def rotateXYZ(coord, R):
     N = [coord[0:3]+[1]]
@@ -16,7 +17,7 @@ ax = Axes3D(fig)
 phi = (1+5**.5)/2
 #original coords from wikipedia
 coordsO = [
-          #[x,    y,    z,  #]
+          #[x,    y,    z,  #(for id)]
            [0,    1,  phi,  1],
            [0,   -1,  phi,  2],
            [0,   -1, -phi,  3],
@@ -31,29 +32,14 @@ coordsO = [
          [phi,    0,   -1, 12]
          ]
 
-centerBottom = map(sum, zip(*([coordsO[2]][0:3]+[coordsO[3]][0:3]+[coordsO[11][0:3]])))
-centerBottom = [x/3 for x in centerBottom]
-"""
-for i in range(len(coordsO)):
-    for x in range(3):
-        coordsO[i][x]-=centerBottom[x]
-"""
-#3,4,12 is the bottom. Rotate around axis = 3,4
+#3,4,11 is the bottom. Rotate around axis = 3,4
 #normal
 
-ax.scatter(*np.reshape(centerBottom, (-1,1)), color="purple")
-ax.scatter([0], [0], [0], color="red")
-axis = np.subtract(coordsO[4-1][0:3], coordsO[3-1][0:3])
 
 
-N = np.subtract(axis, coordsO[12-1][0:3])
-N[1] = 0;
-print(N)
-N = N/np.linalg.norm(N)
-axis = axis/np.linalg.norm(axis) #= [0,1,0]
-print(axis)
 
 
+"""
 v      = np.cross(N, [1, 0, 0])
 c      = np.dot  (N, [1, 0, 0]) #like cosine
 print(math.degrees(math.acos(c)))
@@ -69,9 +55,10 @@ axis_x = np.asarray([[0, -axis[2], axis[1]], [axis[2], 0, -axis[0]], [-axis[1], 
 R = c*np.identity(3)+ s*v_x+ (1-c)*np.tensordot([v], [v])
 #R = np.identity(3)
 #R = np.identity(3)+v_x+np.square(v_x)*1/(1+c)
+"""
 # http://paulbourke.net/geometry/rotate/
 P1 = coordsO[2]
-ax.plot([0, N[0]], [0, N[1]], [0,N[2]], "b")
+#ax.plot([0, N[0]], [0, N[1]], [0,N[2]], "b")
 #--------
 T          = np.identity(4)
 T   [0][3] = -1*P1[0]
@@ -162,6 +149,7 @@ R = np.matmul(R, R_y)
 R = np.matmul(R, R_x)
 R = np.matmul(R, T)
 """
+R = np.identity(4)
 print("N original")
 pprint(N)
 N = np.transpose([N])
@@ -173,58 +161,123 @@ pprint(N)
 pprint(np.transpose(N)[0])
 """
 coords = [rotateXYZ(x, R) for x in coordsO]
+centerBottom = map(sum, zip(*([coords[2]][0:3]+[coords[3]][0:3]+[coords[10][0:3]])))
+centerBottom = [x/3 for x in centerBottom]
+print("Centerbottom")
+pprint(centerBottom)
+for i in range(len(coords)):
+    for x in range(3):
+        coords[i][x]-=centerBottom[x]
+ax.scatter(*np.reshape(centerBottom, (-1,1)), color="purple")
+ax.scatter([0], [0], [0], color="red")
+axis = np.subtract(coords[4-1][0:3], coords[3-1][0:3])
 
     
-print("Coordinates of icosahedron:")
+#print("Coordinates of icosahedron:")
 #pprint([x[0:3] for x in coords])
-pprint(coords)
+#pprint(coords)
 """
  To see if unique, copy this, paste in terminal, then copy the indicies
  pp | sed "s/[^0-9,]//g"|while read line; do echo $line | sed 's/,/\n/g' | sort | awk '{line=line" "$0} END {print line}' ; done|sort|uniq -d
 """
 #ga left arrow, enter *, w/ easy align
-faces = [
-          [3,  4, 12],
-          [3,  4, 11],
-          [3, 12,  8],
-          [8,  9, 12],
-         [12,  9,  5],
-          [9,  5,  1],
-         [12,  4,  5],
-          [3,  7,  8],
-          [7,  8,  2],
-         [10,  2,  7],
-          [2,  8,  9],
-         [11,  3,  7],
-         [10, 11,  6],
-          [4, 11,  6],
-          [4,  6,  5],
-          [5,  6,  1],
-          [6, 10,  1],
-          [1,  2,  9],
-          [1, 10,  2],
-         [10,  7, 11]
-        ]
+#pp | sed "s/[^0-9,]//g"|while read line; do echo $line | sed 's/,/\n/g' | sort -g | awk '{line=line","$0} END {print line}' ; done|sed "s/,,*//"|sort -|sed "s/^/[/g"|sed "s/$/],/g"|copy
 
+#FRONT = 7!
+# NEEDS TO BE IN ORDER FROM A-(t) so the C program knows what file to write it as
+"""
+faces = [
+        [3,  4, 11, "A"],
+        [3,  7, 11, "b"], 
+        [7, 10, 11, "c"],
+        [2,  7, 10, "d"],
+        [4,  6, 11, "e"],
+        [6, 10, 11, "f"],
+        [1,  6, 10, "g"],
+        [1,  2, 10, "h"],
+        [4,  5,  6, "i"],
+        [1,  5,  6, "j"],
+        [1,  5,  9, "k"],
+        [1,  2,  9, "l"],
+        [4,  5, 12, "m"],
+        [5,  9, 12, "n"],
+        [8,  9, 12, "o"],
+        [2,  8,  9, "p"],
+        [3,  4, 12, "q"],
+        [3,  8, 12, "r"],
+        [3,  7,  8, "s"],
+        [2,  7,  8, "t"],
+]
+"""
+faces = [
+        [4,  3, 11, "A"],
+        [3,  11, 7, "b"], 
+        [11, 7, 10, "c"],
+        [7, 10,  2, "d"],
+        [4,  6, 11, "e"],
+        [6, 10, 11, "f"],
+        [1,  6, 10, "g"],
+        [1,  2, 10, "h"],
+        [4,  5,  6, "i"],
+        [1,  5,  6, "j"],
+        [1,  5,  9, "k"],
+        [1,  2,  9, "l"],
+        [4,  5, 12, "m"],
+        [5,  9, 12, "n"],
+        [8,  9, 12, "o"],
+        [2,  8,  9, "p"],
+        [3,  4, 12, "q"],
+        [3,  8, 12, "r"],
+        [3,  7,  8, "s"],
+        [2,  7,  8, "t"],
+]
+
+"""
+        """
+
+numSides = 3;
+faceCoord = "double faces[%d][3]= {\n"%(numSides*len(faces))
 for i in range(len(faces)):
     xs = []
     ys = []
     zs = []
-    for j in range(len(faces[i])+1):
-        x = coords[faces[i][(j%len(faces[i]))]-1][0]
-        y = coords[faces[i][(j%len(faces[i]))]-1][1]
-        z = coords[faces[i][(j%len(faces[i]))]-1][2]
+    avgX = 0
+    avgY = 0
+    avgZ = 0
+    for j in range(3+1):
+        x = coords[faces[i][(j%3)]-1][0]
+        y = coords[faces[i][(j%3)]-1][1]
+        z = coords[faces[i][(j%3)]-1][2]
 
-        l = coords[faces[i][(j%len(faces[i]))]-1][3]
+        if j <= 2:
+            faceCoord+="\t{%f,%f,%f},\n"%(x,y,z)
+
+
+        avgX+=x
+        avgY+=y
+        avgZ+=z
+
+        l = coords[faces[i][(j%3)]-1][3]
 
         xs.append(x)
         ys.append(y)
         zs.append(z)
         label = '#%d' % (l)
-        #ax.text(x, y, z, label)
-    ax.plot(xs, ys, zs, "g-",alpha=0.5)
+    avgX = sum(xs[0:3])/3
+    avgY = sum(ys[0:3])/3
+    avgZ = sum(zs[0:3])/3
+    h = (i+0.0)/(len(faces)-1)
+    ax.text(avgX, avgY, avgZ, faces[i][3], color=colorsys.hls_to_rgb(h, .5, 1))
+    # if unsure if got all, set alpha to .5 to see overlapping lines
+    ax.plot(xs, ys, zs, color=colorsys.hls_to_rgb(h, .5, 1))
+    #ax.plot(xs, ys, zs, color="#000000",alpha=.5)
 #ax.scatter([0], [0], [0], "b")
-
+faceCoord+="};"
+faceCoord = "int numFaces = %i;\nint numSides = %i;"%(len(faces), 3)+"\n"+faceCoord
+print(faceCoord)
+f = open('coords.c', 'w')
+f.write(faceCoord)
+f.close()
 
 xs = [x[0] for x in coords]
 ys = [x[1] for x in coords]
@@ -233,6 +286,7 @@ ls = [x[3] for x in coords]
 for x in range(len(xs)):
     #label = '#%d (%f, %f, %f)' % (ls, x, y, z)
     ax.text(xs[x], ys[x], zs[x], '#%d (%f, %f, %f)' % (ls[x], xs[x], ys[x], zs[x]))
+    #ax.text(xs[x], ys[x], zs[x], ls[x])
 #ax.scatter(xs, ys, zs, linewidth=5)
 pyplot.show()
 
