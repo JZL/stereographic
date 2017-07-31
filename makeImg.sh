@@ -1,5 +1,5 @@
 #http://www.imagemagick.org/Usage/resize/
-size=5000
+size=1000;
 if [ -z "$1" ]; then
         echo "PASS IN IMAGE"
         exit 0

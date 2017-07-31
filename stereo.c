@@ -26,8 +26,8 @@ void generateOutputImage    ( char * imgArr, struct coord2D *newCoordArr, int *o
                               struct outlineCoord *outlineArr, struct Polygon poly, Point endPoint, 
                               int ximg, int yimg, FILE *writeFile                                    ) ;
 int v = 1;
-int sizeOfPaperY = 500;
-int sizeOfPaperX = 500;
+int sizeOfPaperY = 1000;
+int sizeOfPaperX = 1000;
 int numSteps = 400;
 int main(int argc, char **argv){
     FILE *fp;
@@ -151,15 +151,15 @@ int main(int argc, char **argv){
      */
 
     int mult = 100;
-    Point endPoint = {ximg/2, yimg/2, (9.023*mult)+1};
+    Point endPoint = {ximg/2, yimg/2, ((3.023)*mult)};
     //Point endPoint   = {ximg/2, yimg/2, 2000};
     struct Polygon poly; 
     poly.n           = 3;
     poly.interpolate = false;
 
-    for(int i = 0; i<(numFaces*(numSides+1));i++){
+    for(int i = 0; i<(numFaces*(poly.n+1));i++){
         if(i%4 == 0){
-            printf("faceIDs: %f, %f, %f", faces[i][0], faces[i][1], faces[i][2]);
+            printf("faceIDs: %f, %f, %f\n", faces[i][0], faces[i][1], faces[i][2]);
         }else{
             faces[i][0]*=mult;
             faces[i][1]*=mult;
@@ -167,7 +167,7 @@ int main(int argc, char **argv){
 
             faces[i][0]+=ximg/2;
             faces[i][1]+=yimg/2;
-            faces[i][2]+=1; //so off ground
+            faces[i][2]+=0; //so off ground
             printVector(faces[i], "face");
         }
 
@@ -286,7 +286,6 @@ void generateOutputImage(char * imgArr, struct coord2D *newCoordArr, int *outArr
     Point a, b;
     Vector m;
     double changeSize = 1;
-//for(int i = 0; i<(2); i++){
     for(int i = 0; i<(poly.n); i++){
         a[0] = verts[i][0];
         a[1] = verts[i][1];
@@ -330,8 +329,8 @@ void generateOutputImage(char * imgArr, struct coord2D *newCoordArr, int *outArr
             outlineArr[(numSteps*i+t)].Y = newY;
             //Makes coord_09_coord1
             //outlineArr[(numSteps*i+t)].coordID = poly.coordIds[i]*10000+100+poly.coordIds[(i+1)%poly.n];
-            outlineArr[(numSteps*i+t)].coordID = poly.coordIds[i]*100+poly.coordIds[(i+1)%poly.n];
-            //outlineArr[(numSteps*i+t)].coordID = 1;
+            //outlineArr[(numSteps*i+t)].coordID = poly.coordIds[i]*100+poly.coordIds[(i+1)%poly.n];
+            outlineArr[(numSteps*i+t)].coordID = 1;
         }
     }
     for(int i = 0; i<yimg;i++){
@@ -454,7 +453,7 @@ void generateOutputImage(char * imgArr, struct coord2D *newCoordArr, int *outArr
                     //outArr[(int)(round(ray.P[1]*1.5+sizeOfPaperY*.5+200)*(sizeOfPaperX)+(int)round(ray.P[0]*2+sizeOfPaperX*.5-200))] = 0;
                     //outArr[(int)(round((ray.P[1]+200)*1.5+sizeOfPaperY*.5)*(sizeOfPaperX)+(int)round(ray.P[0]+sizeOfPaperX*.5))] = 0;
                     //outArr[(int)(round(ray.P[1]*3.5-150)*(sizeOfPaperX)+(int)round(ray.P[0]*3.5-400))] = 0;
-                    outArr[(int)(round(Y))*(sizeOfPaperX)+(int)round(X)] = 0;
+                    outArr[(int)(Y)*(sizeOfPaperX)+(int)(X)] = 0;
                     if(!v)printf("@");
                 }else{
                     if(!v)printf("-");
@@ -635,9 +634,10 @@ void newCoord(struct Polygon poly, Point *P, Vector N){
 void findCLeftI(double C[][2], double CLeftI[][3]){
     //https://math.stackexchange.com/questions/79301/left-inverses-for-matrix
     double det;
+    double eps = 0.01;
     det = C[0][0]*C[2][1]-C[0][1]*C[2][0];
     printf("det02: %f\n", det);
-    if(det != 0){
+    if(fabs(0-det) > eps){
         det = 1/det;
         CLeftI[0][0] =    C[2][1]*det;
         CLeftI[0][2] = -1*C[0][1]*det;
@@ -649,7 +649,7 @@ void findCLeftI(double C[][2], double CLeftI[][3]){
     }else{
         det = C[0][0]*C[1][1]-C[0][1]*C[1][0];
         printf("det02 was 0 so det01 is %f\n", det);
-        if(det != 0){
+        if(fabs(0-det) > eps){
             det = 1/det;
             CLeftI[0][0] =    C[1][1]*det;
             CLeftI[0][1] = -1*C[0][1]*det;
@@ -662,7 +662,7 @@ void findCLeftI(double C[][2], double CLeftI[][3]){
 
             det = C[1][0]*C[2][1]-C[1][1]*C[2][0];
             printf("det01 was 0 so det12 is %f\n", det);
-            if(det != 0){
+            if(fabs(0-det) > eps){
                 det = 1/det;
                 CLeftI[0][1] =    C[2][1]*det;
                 CLeftI[0][2] = -1*C[1][1]*det;

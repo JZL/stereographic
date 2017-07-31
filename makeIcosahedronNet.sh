@@ -1,4 +1,4 @@
-mogrify  -trim +repage -transparent white -shave 0x1 -trim -format png -path out/png out/*.pgm
+mogrify  -trim +repage -transparent white -shave 1x1 -trim -format png -path out/png out/*.pgm
 
 convert out/png/0.png -flip  out/png/rot/0.png
 convert out/png/4.png -flip  out/png/rot/4.png

@@ -18,3 +18,4 @@ coords.c: icosahedronCoord.py
 clean:
 	$(RM) *.o stereo
 	$(RM) out/*pgm out/png/*png out/png/rot/*
+	$(RM) net.png
