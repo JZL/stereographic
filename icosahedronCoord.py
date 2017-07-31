@@ -4,6 +4,7 @@ import numpy as np
 from pprint import pprint
 import math
 import colorsys
+import sys
 
 def rotateXYZ(coord, R):
     N = [coord[0:3]+[1]]
@@ -210,34 +211,35 @@ faces = [
 ]
 """
 faces = [
-        [4,  3, 11, "A"],
-        [3,  11, 7, "b"], 
-        [11, 7, 10, "c"],
-        [7, 10,  2, "d"],
-        [4,  6, 11, "e"],
-        [6, 10, 11, "f"],
-        [1,  6, 10, "g"],
-        [1,  2, 10, "h"],
-        [4,  5,  6, "i"],
-        [1,  5,  6, "j"],
-        [1,  5,  9, "k"],
-        [1,  2,  9, "l"],
-        [4,  5, 12, "m"],
-        [5,  9, 12, "n"],
-        [8,  9, 12, "o"],
-        [2,  8,  9, "p"],
-        [3,  4, 12, "q"],
-        [3,  8, 12, "r"],
-        [3,  7,  8, "s"],
-        [2,  7,  8, "t"],
+        [11, 3, 4,  "A"],
+        [11, 3, 7, "b"], 
+        [10, 7, 11, "c"],
+        [10, 7, 2, "d"],
+        [6, 11, 4, "e"],
+        [6, 11, 10, "f"],
+        [1,  10, 6, "g"],
+        [1,  10, 2, "h"],
+        [5, 6, 4, "i"],
+        [5, 6, 1, "j"],
+        [9,1,5,"k"],
+        [9,1,2,"l"],
+        [12,5,4,"m"],
+        [12,5,9,"n"],
+        [8,9,12,"o"],
+        [8,9,2,"p"],
+        [3,12,4,"q"],
+        [3,12,8,"r"],
+        [7,8,3,"s"],
+        [7,8,2,"t"],
 ]
 
 """
         """
 
 numSides = 3;
-faceCoord = "double faces[%d][3]= {\n"%(numSides*len(faces))
+faceCoord = "double faces[%d][3]= {\n"%((numSides+1)*len(faces)) #+1 for index
 for i in range(len(faces)):
+    faceCoord+="\t{%d, %d, %d}, //faceVerts\n"%(faces[i][0], faces[i][1], faces[i][2])
     xs = []
     ys = []
     zs = []
@@ -245,9 +247,10 @@ for i in range(len(faces)):
     avgY = 0
     avgZ = 0
     for j in range(3+1):
-        x = coords[faces[i][(j%3)]-1][0]
-        y = coords[faces[i][(j%3)]-1][1]
-        z = coords[faces[i][(j%3)]-1][2]
+        faceIndex = faces[i][(j%3)]-1
+        x = coords[faceIndex][0]
+        y = coords[faceIndex][1]
+        z = coords[faceIndex][2]
 
         if j <= 2:
             faceCoord+="\t{%f,%f,%f},\n"%(x,y,z)
@@ -273,6 +276,7 @@ for i in range(len(faces)):
     #ax.plot(xs, ys, zs, color="#000000",alpha=.5)
 #ax.scatter([0], [0], [0], "b")
 faceCoord+="};"
+#3+1 for x,y,z+vertIndex
 faceCoord = "int numFaces = %i;\nint numSides = %i;"%(len(faces), 3)+"\n"+faceCoord
 print(faceCoord)
 f = open('coords.c', 'w')
@@ -285,8 +289,9 @@ zs = [x[2] for x in coords]
 ls = [x[3] for x in coords]
 for x in range(len(xs)):
     #label = '#%d (%f, %f, %f)' % (ls, x, y, z)
-    ax.text(xs[x], ys[x], zs[x], '#%d (%f, %f, %f)' % (ls[x], xs[x], ys[x], zs[x]))
-    #ax.text(xs[x], ys[x], zs[x], ls[x])
+    #ax.text(xs[x], ys[x], zs[x], '#%d (%f, %f, %f)' % (ls[x], xs[x], ys[x], zs[x]))
+    ax.text(xs[x], ys[x], zs[x], ls[x])
 #ax.scatter(xs, ys, zs, linewidth=5)
-pyplot.show()
+if len(sys.argv) == 1:
+        pyplot.show()
 

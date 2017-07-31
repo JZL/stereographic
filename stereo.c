@@ -23,11 +23,11 @@ void   checkThatLeftInverse ( double C[][2], double CleftI[][3]                 
 void   changeBasis          ( Point *a, double CLeftI[][3]                                           ) ;
 void   findMinMax           ( double X, double Y, double *minMaxX, double *minMaxY                   ) ;
 void generateOutputImage    ( char * imgArr, struct coord2D *newCoordArr, int *outArr,
-                              struct coord2D *outlineArr, struct Polygon poly, Point endPoint, 
+                              struct outlineCoord *outlineArr, struct Polygon poly, Point endPoint, 
                               int ximg, int yimg, FILE *writeFile                                    ) ;
 int v = 1;
-int sizeOfPaperY = 500;
-int sizeOfPaperX = 500;
+int sizeOfPaperY = 5000;
+int sizeOfPaperX = 5000;
 int numSteps = 400;
 int main(int argc, char **argv){
     FILE *fp;
@@ -150,33 +150,39 @@ int main(int argc, char **argv){
        }
      */
 
-    //Point endPoint = {ximg/2, yimg/2, (4.023*300)+100};
-    Point endPoint = {ximg/2, yimg/2, 2000};
+    int mult = 100;
+    Point endPoint = {ximg/2, yimg/2, (4.023*mult)+1};
+    //Point endPoint   = {ximg/2, yimg/2, 2000};
     struct Polygon poly; 
-    poly.n = 3;
+    poly.n           = 3;
     poly.interpolate = false;
 
     for(int i = 0; i<(numFaces*numSides);i++){
-        int mult = 300;
-        faces[i][0]*=mult;
-        faces[i][1]*=mult;
-        faces[i][2]*=mult;
+        if(i%4 == 0){
+            printf("faceIDs: %f, %f, %f", faces[i][0], faces[i][1], faces[i][2]);
+        }else{
+            faces[i][0]*=mult;
+            faces[i][1]*=mult;
+            faces[i][2]*=mult;
 
-        faces[i][0]+=ximg/2;
-        faces[i][1]+=yimg/2;
-        faces[i][2]+=100;
+            faces[i][0]+=ximg/2;
+            faces[i][1]+=yimg/2;
+            faces[i][2]+=1; //so off ground
+            printVector(faces[i], "face");
+        }
 
-        printVector(faces[i], "faces");
     }
 
     struct coord2D *newCoordArr = malloc(sizeof(struct coord2D)*yimg*ximg);
     int *outArr = malloc(sizeof(int)*sizeOfPaperX*sizeOfPaperY);
-    struct coord2D *outlineArr = malloc(sizeof(struct coord2D)*(poly.n)*numSteps);
+    struct outlineCoord *outlineArr = malloc(sizeof(struct outlineCoord)*(poly.n)*numSteps);
 
     char fileName[20];
     char faceNumber[4];
     for(int i = 0; i<numFaces;i++){
-        poly.V = &faces[i*3];
+        poly.coordIds = faces[i*4];
+        poly.V = &faces[i*4+1];
+
         snprintf(faceNumber, 4, "%d", i);
         strcpy(fileName, "out/");
         strcat(fileName, faceNumber);
@@ -185,6 +191,7 @@ int main(int argc, char **argv){
         if(writeFile == NULL){
             printf("couldn't write to file");
         }
+
         generateOutputImage(imgArr, newCoordArr, outArr, outlineArr, poly, endPoint, ximg, yimg, writeFile);
         fclose(writeFile);
     }
@@ -197,11 +204,11 @@ int main(int argc, char **argv){
 }
 
 
-void generateOutputImage(char * imgArr, struct coord2D *newCoordArr, int *outArr, struct coord2D *outlineArr, struct Polygon poly, Point endPoint, int ximg, int yimg, FILE *writeFile){
+void generateOutputImage(char * imgArr, struct coord2D *newCoordArr, int *outArr, struct outlineCoord *outlineArr, struct Polygon poly, Point endPoint, int ximg, int yimg, FILE *writeFile){
     Vector N;
     double minMaxX[2];
     double minMaxY[2];
-    int scale=1; //if make 1, will scale to take up (with 1:1 scaling), the output size
+    int scale=0; //if make 1, will scale to take up (with 1:1 scaling), the output size
     Point *verts = poly.V;
     //TODO does this work?
 
@@ -279,6 +286,7 @@ void generateOutputImage(char * imgArr, struct coord2D *newCoordArr, int *outArr
     Point a, b;
     Vector m;
     double changeSize = 1;
+//for(int i = 0; i<(2); i++){
     for(int i = 0; i<(poly.n); i++){
         a[0] = verts[i][0];
         a[1] = verts[i][1];
@@ -290,16 +298,16 @@ void generateOutputImage(char * imgArr, struct coord2D *newCoordArr, int *outArr
 
         if(!v)printf("\ngoing between %i and %i\n", i, (i+1)%poly.n);
         if(!v){
-        printVector(a, "vertA");
-        printVector(b, "vertB");
+            printVector(a, "vertA");
+            printVector(b, "vertB");
         }
 
         changeBasis(&a, CLeftI);
         changeBasis(&b, CLeftI);
 
         if(!v){
-        printVector(a, "vertA");
-        printVector(b, "vertB");
+            printVector(a, "vertA");
+            printVector(b, "vertB");
         }
 
         pointSub(a, b, &m);
@@ -320,6 +328,10 @@ void generateOutputImage(char * imgArr, struct coord2D *newCoordArr, int *outArr
             findMinMax(newX, newY, minMaxX, minMaxY);
             outlineArr[(numSteps*i+t)].X = newX;
             outlineArr[(numSteps*i+t)].Y = newY;
+            //Makes coord_09_coord1
+            //outlineArr[(numSteps*i+t)].coordID = poly.coordIds[i]*10000+100+poly.coordIds[(i+1)%poly.n];
+            //outlineArr[(numSteps*i+t)].coordID = poly.coordIds[i]*100+poly.coordIds[(i+1)%poly.n];
+            outlineArr[(numSteps*i+t)].coordID = 1;
         }
     }
     for(int i = 0; i<yimg;i++){
@@ -412,7 +424,7 @@ void generateOutputImage(char * imgArr, struct coord2D *newCoordArr, int *outArr
             if(!v)printf("outline extends past outArr\n");
             continue;
         }
-        outArr[((int)(outlineArr[i].Y)*(sizeOfPaperX))+(int)(outlineArr[i].X)] = 1;
+        outArr[((int)(outlineArr[i].Y)*(sizeOfPaperX))+(int)(outlineArr[i].X)] = outlineArr[i].coordID;
     }
 
     if(minMaxX[1] - minMaxX[0] > sizeOfPaperX){

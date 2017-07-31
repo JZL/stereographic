@@ -6,4 +6,5 @@ in.pbm
 withSpaces.pbm
 RayPolygon.o
 test.pgm
-out/*
+out/*.pgm
+*.png
