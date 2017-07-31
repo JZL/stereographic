@@ -26,8 +26,8 @@ void generateOutputImage    ( char * imgArr, struct coord2D *newCoordArr, int *o
                               struct outlineCoord *outlineArr, struct Polygon poly, Point endPoint, 
                               int ximg, int yimg, FILE *writeFile                                    ) ;
 int v = 1;
-int sizeOfPaperY = 5000;
-int sizeOfPaperX = 5000;
+int sizeOfPaperY = 500;
+int sizeOfPaperX = 500;
 int numSteps = 400;
 int main(int argc, char **argv){
     FILE *fp;
@@ -151,13 +151,13 @@ int main(int argc, char **argv){
      */
 
     int mult = 100;
-    Point endPoint = {ximg/2, yimg/2, (4.023*mult)+1};
+    Point endPoint = {ximg/2, yimg/2, (9.023*mult)+1};
     //Point endPoint   = {ximg/2, yimg/2, 2000};
     struct Polygon poly; 
     poly.n           = 3;
     poly.interpolate = false;
 
-    for(int i = 0; i<(numFaces*numSides);i++){
+    for(int i = 0; i<(numFaces*(numSides+1));i++){
         if(i%4 == 0){
             printf("faceIDs: %f, %f, %f", faces[i][0], faces[i][1], faces[i][2]);
         }else{
@@ -330,8 +330,8 @@ void generateOutputImage(char * imgArr, struct coord2D *newCoordArr, int *outArr
             outlineArr[(numSteps*i+t)].Y = newY;
             //Makes coord_09_coord1
             //outlineArr[(numSteps*i+t)].coordID = poly.coordIds[i]*10000+100+poly.coordIds[(i+1)%poly.n];
-            //outlineArr[(numSteps*i+t)].coordID = poly.coordIds[i]*100+poly.coordIds[(i+1)%poly.n];
-            outlineArr[(numSteps*i+t)].coordID = 1;
+            outlineArr[(numSteps*i+t)].coordID = poly.coordIds[i]*100+poly.coordIds[(i+1)%poly.n];
+            //outlineArr[(numSteps*i+t)].coordID = 1;
         }
     }
     for(int i = 0; i<yimg;i++){
@@ -424,7 +424,7 @@ void generateOutputImage(char * imgArr, struct coord2D *newCoordArr, int *outArr
             if(!v)printf("outline extends past outArr\n");
             continue;
         }
-        outArr[((int)(outlineArr[i].Y)*(sizeOfPaperX))+(int)(outlineArr[i].X)] = outlineArr[i].coordID;
+        outArr[(int)((round(outlineArr[i].Y))*(sizeOfPaperX)+(round(outlineArr[i].X)))] = outlineArr[i].coordID;
     }
 
     if(minMaxX[1] - minMaxX[0] > sizeOfPaperX){
