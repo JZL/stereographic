@@ -7,29 +7,30 @@
 #include "coords.c" //generated from icosahedron.py, etc
 
 //https://cocalc.com/projects/b0966444-8a50-4f2a-a0a7-5d5e6e261ea5/files/2017-06-21-221142.sagews
-void   vectorCross          ( Vector a, Vector b, Vector *c                                          ) ;
-double vectorDot            ( Vector a, Vector b                                                     ) ;
-void   pointSub             ( Point a, Point b, Vector *c                                            ) ;
-double findT                ( Point *verts, struct Polygon poly, struct Ray ray, int * i_s, Vector N ) ;
-void   printVector          ( Vector v, char* name                                                   ) ;
-int    maxN                 ( Vector N                                                               ) ;
-int    abs                  ( int                                                                    ) ;
-void   normalize            ( Vector                                                                 ) ;
-void   distPoints           ( Point *a, Point *b                                                     ) ;
-void   project              ( Point *p, Vector N                                                     ) ;
-void   newCoord             ( struct Polygon poly, Point *P, Vector N                                ) ;
-void   findCLeftI           ( double C[][2], double CLeftI[][3]                                      ) ;
-void   checkThatLeftInverse ( double C[][2], double CleftI[][3]                                      ) ;
-void   changeBasis          ( Point *a, double CLeftI[][3]                                           ) ;
-void   findMinMax           ( double X, double Y, double *minMaxX, double *minMaxY                   ) ;
-void generateOutputImage    ( char * imgArr, struct coord2D *newCoordArr, int *outArr,
-                              struct outlineCoord *outlineArr, struct Polygon poly, Point endPoint, 
-                              int ximg, int yimg, FILE *writeFile                                    ) ;
+void   vectorCross          (Vector a, Vector b, Vector *c                                         );
+double vectorDot            (Vector a, Vector b                                                    );
+void   pointSub             (Point a, Point b, Vector *c                                           );
+double findT                (Point *verts, struct Polygon poly, struct Ray ray, int * i_s, Vector N);
+void   printVector          (Vector v, char* name                                                  );
+int    maxN                 (Vector N                                                              );
+int    abs                  (int                                                                   );
+void   normalize            (Vector                                                                );
+void   distPoints           (Point *a, Point *b                                                    );
+void   project              (Point *p, Vector N                                                    );
+void   newCoord             (struct Polygon poly, Point *P, Vector N                               );
+void   findCLeftI           (double C[][2], double CLeftI[][3]                                     );
+void   checkThatLeftInverse (double C[][2], double CleftI[][3]                                     );
+void   changeBasis          (Point *a, double CLeftI[][3]                                          );
+void   findMinMax           (double X, double Y, double *minMaxX, double *minMaxY                  );
+void generateOutputImage    (char * imgArr, struct coord2D *newCoordArr, int *outArr,
+                             struct outlineCoord *outlineArr, struct Polygon poly, Point endPoint, 
+                             int ximg, int yimg, FILE *writeFile                                   );
 int v = 1;
 int sizeOfPaperY = 1000;
 int sizeOfPaperX = 1000;
 int numSteps = 400;
 int main(int argc, char **argv){
+    printf("**Starting stero.c**");
     FILE *fp;
     FILE *writeFile;
     char magicNumStr[2];
@@ -59,7 +60,7 @@ int main(int argc, char **argv){
     if(!v)printf("tmpF: %i\n", tmpF);
     if (feof(fp) ||tmpF != 1){
         printf("Unexpected error in input data.");
-        exit(EXIT_FAILURE);
+        exit(1);
     }
     /* printf("%s\n", magicNumStr); */
     if(strcmp(magicNumStr, "P1")!=0){
@@ -71,15 +72,20 @@ int main(int argc, char **argv){
     printf("tmpF: %i\n", tmpF);
     if (feof(fp)||tmpF != 2){
         printf("Unexpected error in input data.");
-        exit(EXIT_FAILURE);
+        exit(1);
     }
     char *imgArr = malloc(sizeof(int)*yimg*(ximg));
+    if(!imgArr){
+        printf("COULDN'T MALLOC\n");
+        printf("%s: %p\n", "imgArr", imgArr);
+        exit(1);
+    }
     tmpF = fread(imgArr, sizeof(int)*(ximg), (yimg), fp);
     printf("tmpF: %i %i, %i, feof(fp): %i\n", tmpF,ximg, yimg, feof(fp));
     if(!feof(fp) ||tmpF!=yimg/4){
         //want it be the end of file
         printf("Unexpected error in input data.");
-        exit(EXIT_FAILURE);
+        exit(1);
     }
     //CHANGE POLY ATTR BELOW
     //NEEDS TO BE IN CIRCULAR ORDER 
@@ -176,6 +182,15 @@ int main(int argc, char **argv){
     struct coord2D *newCoordArr = malloc(sizeof(struct coord2D)*yimg*ximg);
     int *outArr = malloc(sizeof(int)*sizeOfPaperX*sizeOfPaperY);
     struct outlineCoord *outlineArr = malloc(sizeof(struct outlineCoord)*(poly.n)*numSteps);
+    if(outlineArr == NULL|| newCoordArr == NULL|| outArr == NULL){
+        printf("COULDN'T MALLOC\n");
+        exit(999);
+        printf("%s: %p\n", "outlineArr", outlineArr);
+        printf("%s: %p\n", "newCoordArr", newCoordArr);
+        printf("%s: %p\n", "outArr", outArr);
+        fflush(stdout);
+        return -1;
+    }
 
     char fileName[20];
     char faceNumber[4];
@@ -192,6 +207,7 @@ int main(int argc, char **argv){
             printf("couldn't write to file");
         }
 
+        printf("Face %02d/%d\n", i, numFaces-1);
         generateOutputImage(imgArr, newCoordArr, outArr, outlineArr, poly, endPoint, ximg, yimg, writeFile);
         fclose(writeFile);
     }
@@ -239,17 +255,19 @@ void generateOutputImage(char * imgArr, struct coord2D *newCoordArr, int *outArr
 
     vectorCross(v0v1, v0v2, &N);
 
-    printVector(v0v1, "v0v1");
     normalize(v0v1);
-    printVector(v0v1, "v0v1Norm");
-    printVector(N, "N");
     normalize(N);
-    printVector(N, "NNorm");
 
     vectorCross(v0v1, N, &secondAxis);
-    printVector(secondAxis, "secondAxis");
     normalize(secondAxis);
-    printVector(secondAxis, "secondAxisNorm");
+    if(!v){
+        printVector(secondAxis, "secondAxisNorm");
+        printVector(secondAxis, "secondAxis");
+        printVector(v0v1, "v0v1");
+        printVector(v0v1, "v0v1Norm");
+        printVector(N, "N");
+        printVector(N, "NNorm");
+    }
 
     double C[3][2];
     double CLeftI[3][3];
@@ -400,7 +418,6 @@ void generateOutputImage(char * imgArr, struct coord2D *newCoordArr, int *outArr
             }
         }
     }
-    printf("\n");
 
     double changeXSize = (sizeOfPaperX/(minMaxX[1] - minMaxX[0]));
     double changeYSize = (sizeOfPaperY/(minMaxY[1] - minMaxY[0]));
@@ -697,12 +714,14 @@ void checkThatLeftInverse(double C[][2], double CLeftI[][3]){
     a01 = CLeftI[0][0]*C[0][1]+CLeftI[0][1]*C[1][1]+CLeftI[0][2]*C[2][1]+0.0;
     a10 = CLeftI[1][0]*C[0][0]+CLeftI[1][1]*C[1][0]+CLeftI[1][2]*C[2][0]+0.0;
     a11 = CLeftI[1][0]*C[0][1]+CLeftI[1][1]*C[1][1]+CLeftI[1][2]*C[2][1]+0.0;
-    printf("Left Inverse: \n");
-    printf("  [[%f, %f, %f],\n", CLeftI[0][0],CLeftI[0][1],CLeftI[0][2]);
-    printf("  [[%f, %f, %f]]\n", CLeftI[1][0],CLeftI[1][1],CLeftI[1][2]);
-    printf("checkLeftInverse: \n");
-    printf("  [[%a, %a],\n", a00, a01);
-    printf("  [[%a, %a]]\n", a10, a11);
+    if(!v){
+        printf("Left Inverse: \n");
+        printf("  [[%f, %f, %f],\n", CLeftI[0][0],CLeftI[0][1],CLeftI[0][2]);
+        printf("  [[%f, %f, %f]]\n", CLeftI[1][0],CLeftI[1][1],CLeftI[1][2]);
+        printf("checkLeftInverse: \n");
+        printf("  [[%a, %a],\n", a00, a01);
+        printf("  [[%a, %a]]\n", a10, a11);
+    }
     if(!((fabs(a00-1)<eps && fabs(a01-0.0)<eps && fabs(a10-0.0)<eps && fabs(a11-1.0)<eps))){
         printf("LeftC isn't a left inverse\n");
         exit(1);
