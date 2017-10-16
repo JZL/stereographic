@@ -27,6 +27,7 @@ convert \
     ./png/rot/8.png \
     ./png/rot/12.png \
     ./png/rot/16.png \
+    -quality 01 \
     +smush 1 top.png
 
 convert \
@@ -40,6 +41,7 @@ convert \
     ./png/rot/14.png \
     ./png/17.png \
     ./png/rot/18.png \
+    -quality 01 \
     +smush -2 -transparent white middle.png
 
 convert \
@@ -48,12 +50,15 @@ convert \
     ./png/11.png \
     ./png/15.png \
     ./png/19.png \
+    -quality 01 \
     +smush 1 bottom.png
 
 
-convert bottom.png -gravity West -splice 100x0 -transparent white bottomExp.png
+convert bottom.png -quality 01 -gravity West -splice 100x0 -transparent white bottomExp.png
 
-convert top.png middle.png -smush 0 -transparent white topMiddle.png
+convert top.png middle.png -quality 01 -smush 0 -transparent white topMiddle.png
+
+convert topMiddle.png bottomExp.png -quality 01 -gravity West -smush 0 ../net.png
 
 echo "DONE! Check net.png"
 
