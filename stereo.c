@@ -26,8 +26,8 @@ void generateOutputImage    (char * imgArr, struct coord2D *newCoordArr, int *ou
                              struct outlineCoord *outlineArr, struct Polygon poly, Point endPoint, 
                              int ximg, int yimg, FILE *writeFile                                   );
 int v = 1;
-int sizeOfPaperY = 1000;
-int sizeOfPaperX = 1000;
+int sizeOfPaperY = 5000;
+int sizeOfPaperX = 5000;
 int numSteps = 400;
 int main(int argc, char **argv){
     printf("**Starting stero.c**");
