@@ -13,5 +13,5 @@ echo "done converting to png"
 convert -compress none cropped.png withSpaces.pbm
 echo "done converting to interim pbm"
 sed -i "/#/d" withSpaces.pbm
-cat <(head -2 withSpaces.pbm) <(tail -n +3 withSpaces.pbm|sed 's/\s//g' |tr -d "\n") > in.pbm
+cat <(head -2 withSpaces.pbm) <(tail -n +3 withSpaces.pbm|tr -d "[ \n]") > in.pbm
 echo "done converting to correct!"
