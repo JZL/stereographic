@@ -13,7 +13,7 @@ RayPolygon:
 	$(CC) $(CFLAGS) -c RayPolygon.c
 
 coords.c: icosahedronCoord.py
-	python icosahedronCoord.py 0
+	python icosahedronCoord.py
 
 clean:
 	$(RM) *.o stereo

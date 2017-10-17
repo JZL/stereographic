@@ -13,8 +13,6 @@ def rotateXYZ(coord, R):
     N = np.matmul(R, N)
     return [N[0][0], N[1][0], N[2][0]]+coord[3:]
 
-fig = pyplot.figure()
-ax = Axes3D(fig)
 phi = (1+5**.5)/2
 #original coords from wikipedia
 coordsO = [
@@ -169,9 +167,6 @@ pprint(centerBottom)
 for i in range(len(coords)):
     for x in range(3):
         coords[i][x]-=centerBottom[x]
-ax.scatter(*np.reshape(centerBottom, (-1,1)), color="purple")
-ax.scatter([0], [0], [0], color="red")
-axis = np.subtract(coords[4-1][0:3], coords[3-1][0:3])
 
     
 #print("Coordinates of icosahedron:")
@@ -268,9 +263,6 @@ for i in range(len(faces)):
     avgY = sum(ys[0:3])/3
     avgZ = sum(zs[0:3])/3
     h = (i+0.0)/(len(faces)-1)
-    ax.text(avgX, avgY, avgZ, faces[i][3], color=colorsys.hls_to_rgb(h, .5, 1))
-    # if unsure if got all, set alpha to .5 to see overlapping lines
-    ax.plot(xs, ys, zs, color=colorsys.hls_to_rgb(h, .5, 1))
     #ax.plot(xs, ys, zs, color="#000000",alpha=.5)
 #ax.scatter([0], [0], [0], "b")
 faceCoord+="};"
@@ -285,11 +277,22 @@ xs = [x[0] for x in coords]
 ys = [x[1] for x in coords]
 zs = [x[2] for x in coords]
 ls = [x[3] for x in coords]
-for x in range(len(xs)):
-    #label = '#%d (%f, %f, %f)' % (ls, x, y, z)
-    #ax.text(xs[x], ys[x], zs[x], '#%d (%f, %f, %f)' % (ls[x], xs[x], ys[x], zs[x]))
-    ax.text(xs[x], ys[x], zs[x], ls[x])
-#ax.scatter(xs, ys, zs, linewidth=5)
-if len(sys.argv) == 1:
-        pyplot.show()
+print "If want to see a pyplot plot of icosahedron, add a second argument"
+print len(sys.argv)
+if len(sys.argv) == 2:
+    fig = pyplot.figure()
+    ax = Axes3D(fig)
+    for x in range(len(xs)):
+        #label = '#%d (%f, %f, %f)' % (ls, x, y, z)
+        #ax.text(xs[x], ys[x], zs[x], '#%d (%f, %f, %f)' % (ls[x], xs[x], ys[x], zs[x]))
+        ax.text(xs[x], ys[x], zs[x], ls[x])
+    #ax.scatter(xs, ys, zs, linewidth=5)
+
+    ax.text(avgX, avgY, avgZ, faces[i][3], color=colorsys.hls_to_rgb(h, .5, 1))
+    # if unsure if got all, set alpha to .5 to see overlapping lines
+    ax.plot(xs, ys, zs, color=colorsys.hls_to_rgb(h, .5, 1))
+    ax.scatter(*np.reshape(centerBottom, (-1,1)), color="purple")
+    ax.scatter([0], [0], [0], color="red")
+    axis = np.subtract(coords[4-1][0:3], coords[3-1][0:3])
+    pyplot.show()
 
