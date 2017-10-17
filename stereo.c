@@ -7,24 +7,26 @@
 #include "coords.c" //generated from icosahedron.py, etc
 
 //https://cocalc.com/projects/b0966444-8a50-4f2a-a0a7-5d5e6e261ea5/files/2017-06-21-221142.sagews
-void   vectorCross          (Vector a, Vector b, Vector *c                                         );
-double vectorDot            (Vector a, Vector b                                                    );
-void   pointSub             (Point a, Point b, Vector *c                                           );
-double findT                (Point *verts, struct Polygon poly, struct Ray ray, int * i_s, Vector N);
-void   printVector          (Vector v, char* name                                                  );
-int    maxN                 (Vector N                                                              );
-int    abs                  (int                                                                   );
-void   normalize            (Vector                                                                );
-void   distPoints           (Point *a, Point *b                                                    );
-void   project              (Point *p, Vector N                                                    );
-void   newCoord             (struct Polygon poly, Point *P, Vector N                               );
-void   findCLeftI           (double C[][2], double CLeftI[][3]                                     );
-void   checkThatLeftInverse (double C[][2], double CleftI[][3]                                     );
-void   changeBasis          (Point *a, double CLeftI[][3]                                          );
-void   findMinMax           (double X, double Y, double *minMaxX, double *minMaxY                  );
-void generateOutputImage    (char * imgArr, struct coord2D *newCoordArr, int *outArr,
-                             struct outlineCoord *outlineArr, struct Polygon poly, Point endPoint, 
-                             int ximg, int yimg, FILE *writeFile                                   );
+void   vectorCross          ( Vector a, Vector b, Vector *c                                         );
+double vectorDot            ( Vector a, Vector b                                                    );
+void   pointSub             ( Point a, Point b, Vector *c                                           );
+double findT                ( Point *verts, struct Polygon poly, struct Ray ray, int * i_s, Vector N);
+void   printVector          ( Vector v, char* name                                                  );
+int    maxN                 ( Vector N                                                              );
+int    abs                  ( int                                                                   );
+void   normalize            ( Vector                                                                );
+void   distPoints           ( Point *a, Point *b                                                    );
+void   project              ( Point *p, Vector N                                                    );
+void   newCoord             ( struct Polygon poly, Point *P, Vector N                               );
+void   findCLeftI           ( double C[][2], double CLeftI[][3]                                     );
+void   checkThatLeftInverse ( double C[][2], double CleftI[][3]                                     );
+void   changeBasis          ( Point *a, double CLeftI[][3]                                          );
+void   findMinMax           ( double X, double Y, double *minMaxX, double *minMaxY                  );
+double    findMaxZValueCoord   ();
+void   generateOutputImage  ( char * imgArr, struct coord2D *newCoordArr, int *outArr,
+                              struct outlineCoord *outlineArr, struct Polygon poly, Point endPoint,
+                              int ximg, int yimg, FILE *writeFile                                   );
+
 int v = 1;
 int sizeOfPaperY = 5000;
 int sizeOfPaperX = 5000;
@@ -62,24 +64,27 @@ int main(int argc, char **argv){
         printf("Unexpected error in input data.");
         exit(1);
     }
+    //Make sure is bmp
     /* printf("%s\n", magicNumStr); */
     if(strcmp(magicNumStr, "P1")!=0){
         printf("Needs to be pbm\n");
         exit(2);
     }
 
+    //Get x and y width
     tmpF = fscanf(fp, "%i %i\n",&yimg, &ximg );
     printf("tmpF: %i\n", tmpF);
     if (feof(fp)||tmpF != 2){
         printf("Unexpected error in input data.");
         exit(1);
     }
-    char *imgArr = malloc(sizeof(int)*yimg*(ximg));
+    char *imgArr = malloc(sizeof(int)*yimg*ximg);
     if(!imgArr){
         printf("COULDN'T MALLOC\n");
         printf("%s: %p\n", "imgArr", imgArr);
         exit(1);
     }
+    //Read in all the image at once!
     tmpF = fread(imgArr, sizeof(int)*(ximg), (yimg), fp);
     printf("tmpF: %i %i, %i, feof(fp): %i\n", tmpF,ximg, yimg, feof(fp));
     if(!feof(fp) ||tmpF!=yimg/4){
@@ -87,84 +92,21 @@ int main(int argc, char **argv){
         printf("Unexpected error in input data.");
         exit(1);
     }
-    //CHANGE POLY ATTR BELOW
-    //NEEDS TO BE IN CIRCULAR ORDER 
-    /*
-    //Triangle
-    Point verts[3]= { 
-        {ximg*1.0, 0, 0}, 
-        {ximg*1.0, yimg*0.6, 0}, 
-        //{ximg*1.0, yimg*1.0, ximg*1.0}, 
-        {ximg*1.0, 0, ximg*1.2} 
-    }; 
-    Point endPoint = {(ximg)*1.2,yimg*.5, ximg*.55};
-    */
-    /*
-    //Pentagon
-    float c1 = .25*(sqrt(5)-1);
-    float c2 = .25*(sqrt(5)+1);
-    float s1 = .25*(sqrt(10+2*sqrt(5)));
-    float s2 = .25*(sqrt(10-2*sqrt(5)));
-    Point verts[5]={ 
-        {ximg*1.0,   0, 1},
-        {ximg*1.0, -s1, c1},
-        {ximg*1.0, -s2, -c2},
-        {ximg*1.0,  s2, -c2},
-        {ximg*1.0,  s1, c1},
-    }; 
-    for(int i = 0; i<5;i++){
-        verts[i][1]+=s1;//+.1;
-        verts[i][2]+=c2;//+.1;
-        for(int j = 1; j<3;j++){
-            verts[i][j]*=(200);
-        }
-        if(!v)printVector(verts[i], "vert");
-        //verts[i][3]+=c2; 
-    }
-    Point endPoint = {(ximg)*1.5,200,200};
-    struct Polygon poly = {
-        5,
-        0,
-        verts
-    };
-    */
     if(!v)printf("--\n");
-    /* Point endPoint = {(int)ximg*2, (int)yimg*1, (int)ximg*.5}; */
-    /*
-       Point verts[4]= {
-       {0,0,0},
-       {0,0, 125},
-       {125,0,0},
-       {125,0,125}
-       };
-     */
-    /*
-       Point verts[4]= {
-       {0,0,20},
-       {ximg, 0, 20},
-       {ximg, yimg, 20},
-       {0, yimg, 20},
-       };
-     */
-
-    /*
-       for(int i =0; i<4;i++){
-       verts[i][0]*=2;
-       verts[i][1]*=2;
-       verts[i][0]+=(ximg/2-(125/2));
-       verts[i][1]+=(yimg/2-(125/2));
-       }
-     */
-
     int mult = 100;
-    Point endPoint = {ximg/2, yimg/2, ((3.023)*mult)};
+    //cat coords.c |awk -F, '{print $3}'|sort
+    double maxZValue = 0;
+    maxZValue = findMaxZValueCoord();
+    printf("Max ZValue: %f\n", maxZValue);
+
+    Point endPoint = {ximg/2, yimg/2, (maxZValue*mult)};
     //Point endPoint   = {ximg/2, yimg/2, 2000};
     struct Polygon poly; 
     poly.n           = 3;
     poly.interpolate = false;
 
     for(int i = 0; i<(numFaces*(poly.n+1));i++){
-        if(i%4 == 0){
+        if(i%(numSides+1) == 0){
             printf("faceIDs: %f, %f, %f\n", faces[i][0], faces[i][1], faces[i][2]);
         }else{
             faces[i][0]*=mult;
@@ -176,7 +118,6 @@ int main(int argc, char **argv){
             faces[i][2]+=0; //so off ground
             printVector(faces[i], "face");
         }
-
     }
 
     struct coord2D *newCoordArr = malloc(sizeof(struct coord2D)*yimg*ximg);
@@ -184,12 +125,11 @@ int main(int argc, char **argv){
     struct outlineCoord *outlineArr = malloc(sizeof(struct outlineCoord)*(poly.n)*numSteps);
     if(outlineArr == NULL|| newCoordArr == NULL|| outArr == NULL){
         printf("COULDN'T MALLOC\n");
-        exit(999);
-        printf("%s: %p\n", "outlineArr", outlineArr);
+        printf("%s: %p\n",  "outlineArr", outlineArr);
         printf("%s: %p\n", "newCoordArr", newCoordArr);
-        printf("%s: %p\n", "outArr", outArr);
+        printf("%s: %p\n",      "outArr", outArr);
         fflush(stdout);
-        return -1;
+        exit(999);
     }
 
     char fileName[20];
@@ -206,10 +146,10 @@ int main(int argc, char **argv){
         if(writeFile == NULL){
             printf("couldn't write to file");
         }
-
         printf("Face %02d/%d\n", i, numFaces-1);
         generateOutputImage(imgArr, newCoordArr, outArr, outlineArr, poly, endPoint, ximg, yimg, writeFile);
         fclose(writeFile);
+        printf("----\n");
     }
 
     free(imgArr);
@@ -217,16 +157,18 @@ int main(int argc, char **argv){
     free(newCoordArr);
     free(outlineArr);
     fclose(fp);
+    return 0;
 }
 
 
-void generateOutputImage(char * imgArr, struct coord2D *newCoordArr, int *outArr, struct outlineCoord *outlineArr, struct Polygon poly, Point endPoint, int ximg, int yimg, FILE *writeFile){
+void generateOutputImage(char * imgArr, struct coord2D *newCoordArr, int
+        *outArr, struct outlineCoord *outlineArr, struct Polygon poly, Point
+        endPoint, int ximg, int yimg, FILE *writeFile){
+
     Vector N;
     double minMaxX[2];
     double minMaxY[2];
-    int scale=0; //if make 1, will scale to take up (with 1:1 scaling), the output size
     Point *verts = poly.V;
-    //TODO does this work?
 
     int firstTime = 1; //for findingMinMax, if first run through loop
     //can't be i && j == 0 bc the value at [i][j] might not be == 1
@@ -246,10 +188,6 @@ void generateOutputImage(char * imgArr, struct coord2D *newCoordArr, int *outArr
     struct Ray ray;
 
     Vector v0v1, v0v2, secondAxis;
-    /*
-       pointSub(verts[1], verts[0], &v0v1);
-       pointSub(verts[2], verts[0], &v0v2);
-     */
     pointSub(verts[1], verts[0], &v0v1);
     pointSub(verts[2], verts[0], &v0v2);
 
@@ -298,12 +236,11 @@ void generateOutputImage(char * imgArr, struct coord2D *newCoordArr, int *outArr
     firstTime = 0;
     }
     findMinMax(lightPoint[0], lightPoint[1], minMaxX, minMaxY);
-     */
+    */
 
     //The points need to be in the circular order
     Point a, b;
     Vector m;
-    double changeSize = 1;
     for(int i = 0; i<(poly.n); i++){
         a[0] = verts[i][0];
         a[1] = verts[i][1];
@@ -342,14 +279,37 @@ void generateOutputImage(char * imgArr, struct coord2D *newCoordArr, int *outArr
                 minMaxY[1] = newY;
                 firstTime = 0;
             }
+            int outLineIndex = numSteps*i+t;
             findMinMax(newX, newY, minMaxX, minMaxY);
-            outlineArr[(numSteps*i+t)].X = newX;
-            outlineArr[(numSteps*i+t)].Y = newY;
-            //Makes coord_09_coord1
-            //outlineArr[(numSteps*i+t)].coordID = poly.coordIds[i]*10000+100+poly.coordIds[(i+1)%poly.n];
-            //outlineArr[(numSteps*i+t)].coordID = poly.coordIds[i]*100+poly.coordIds[(i+1)%poly.n];
-            outlineArr[(numSteps*i+t)].coordID = 1;
+            outlineArr[outLineIndex].X       = newX;
+            outlineArr[outLineIndex].Y       = newY;
+            outlineArr[outLineIndex].coordID = 1;
         }
+    }
+    printf("minX: %f, minY: %f\n", minMaxX[0], minMaxY[0]);
+    if(minMaxX[1] - minMaxX[0] > sizeOfPaperX){
+        printf("WILL OVERFLOW IN X DIREACTION\n");
+    }
+    if(minMaxY[1] - minMaxY[0] > sizeOfPaperY){
+        printf("WILL OVERFLOW IN Y DIREACTION\n");
+    }
+
+    for(int i = 0; i<(poly.n*numSteps);i++){
+        double newX, newY; //X and Y which are min/maxed so > 0
+        newX =  round(outlineArr[i].X-minMaxX[0]);
+        newY =  round(outlineArr[i].Y-minMaxY[0]);
+        if( newX>=sizeOfPaperX||newX<0||
+            newY>=sizeOfPaperY||newY<0){
+            //If this happens, is not going to show whole thing
+            printf("outline extends past outArr!\n");
+            exit(1);
+            continue;
+        }
+        /* If want to debug which face is on (and what polarity), set coordID
+         * above to be something like ((i*1000+9)+(i+1)%poly.n) to give xxx9yyy
+         * for the verts) and then make below = outlineArr[i].coordID;
+         */
+        outArr[(int)(newY*sizeOfPaperX+newX)] = 0; // = black
     }
     for(int i = 0; i<yimg;i++){
         for(int j = 0; j<ximg;j++){
@@ -382,7 +342,7 @@ void generateOutputImage(char * imgArr, struct coord2D *newCoordArr, int *outArr
                     if(!v)printf("t<=0\n"); 
                     continue;
                 } 
-                 if(!v)printf("i_1: %i, i_2:%i\n", i_s[0], i_s[1]); 
+                if(!v)printf("i_1: %i, i_2:%i\n", i_s[0], i_s[1]); 
 
                 intersects = intersect(&poly, &ray, t, i_s[0], i_s[1], v);
 
@@ -392,20 +352,12 @@ void generateOutputImage(char * imgArr, struct coord2D *newCoordArr, int *outArr
                 }
                 //distPoints(&(verts[0]), &ray.P);
                 //newCoord(poly, &ray.P, N);
+                //TODO move to only if intersects
                 changeBasis(&ray.P, CLeftI);
                 if(!v) printVector(ray.P, "rayPA");
                 if(!v) printf(".5intersects? %d\n", intersects);
                 if(!v) printVector(ray.P, "rayPAfterAdd");
-                if(firstTime == 1){
-                    //set minMax with init values
-                    minMaxX[0] = ray.P[0];
-                    minMaxX[1] = ray.P[0];
-                    minMaxY[0] = ray.P[1];
-                    minMaxY[1] = ray.P[1];
-                    firstTime = 0;
-                }
                 if(intersects == 1){
-                    findMinMax(ray.P[0], ray.P[1], minMaxX, minMaxY);
                     if(!v)printf("=");
                     newCoordArr[i*ximg+j].X = ray.P[0];
                     newCoordArr[i*ximg+j].Y = ray.P[1];
@@ -416,53 +368,15 @@ void generateOutputImage(char * imgArr, struct coord2D *newCoordArr, int *outArr
                     newCoordArr[i*ximg+j].Y = 0;
                 }
             }
-        }
-    }
+            double finalX, finalY;
+            finalX = newCoordArr[i*ximg+j].X;
+            finalY = newCoordArr[i*ximg+j].Y;
 
-    double changeXSize = (sizeOfPaperX/(minMaxX[1] - minMaxX[0]));
-    double changeYSize = (sizeOfPaperY/(minMaxY[1] - minMaxY[0]));
-    if(changeXSize< changeYSize){
-        changeSize = changeXSize;
-    }else{
-        changeSize = changeYSize;
-    }
-    if(scale == 0){
-        changeSize = 1;
-    }
-    if(!v)printf("\nminMax0: %f, %f", minMaxX[0], minMaxY[0]);
-    for(int i = 0; i<(poly.n*numSteps);i++){
-        changeBasis(&ray.P, CLeftI);
-        outlineArr[i].X =  (outlineArr[i].X-minMaxX[0])*changeSize;
-        outlineArr[i].Y =  (outlineArr[i].Y-minMaxY[0])*changeSize;
-        //printf("(%f, %f)\n", outlineArr[i].X, outlineArr[i].Y);
-        if( outlineArr[i].X>=sizeOfPaperX||outlineArr[i].X<0||
-            outlineArr[i].Y>=sizeOfPaperY||outlineArr[i].Y<0){
-            if(!v)printf("outline extends past outArr\n");
-            continue;
-        }
-        outArr[(int)((round(outlineArr[i].Y))*(sizeOfPaperX)+(round(outlineArr[i].X)))] = outlineArr[i].coordID;
-    }
-
-    if(minMaxX[1] - minMaxX[0] > sizeOfPaperX){
-        printf("WILL OVERFLOW IN X DIREACTION\n");
-    }
-    if(minMaxY[1] - minMaxY[0] > sizeOfPaperY){
-        printf("WILL OVERFLOW IN Y DIREACTION\n");
-    }
-    lightPoint[0] = (lightPoint[0]-minMaxX[0])*changeSize;
-    lightPoint[1] = (lightPoint[1]-minMaxY[0])*changeSize;
-    if(!v)printVector(lightPoint, "lightPointAft");
-    double X,Y;
-    for(int i = 0; i<yimg;i++){
-        for(int j = 0; j<ximg;j++){
-            X = newCoordArr[i*ximg+j].X;
-            Y = newCoordArr[i*ximg+j].Y;
-
-            X = (X-minMaxX[0])*changeSize;
-            Y = (Y-minMaxY[0])*changeSize;
-            if(v==5)printf("FINAL COORD: (%f, %f)\n", X, Y);
-            if(!(X==0 && Y==0)){
-                if(X>=0 && X< sizeOfPaperX  && Y>=0 && Y<sizeOfPaperY){
+            finalX = finalX-minMaxX[0];
+            finalY = finalY-minMaxY[0];
+            if(v==5)printf("FINAL COORD: (%f, %f)\n", finalX, finalY);
+            if(!(finalX==0 && finalY==0)){
+                if(finalX>=0 && finalX< sizeOfPaperX  && finalY>=0 && finalY<sizeOfPaperY){
                     //outArr[(int)(ray.P[1])*(maxOutSide)+(int)(ray.P[0])] = 1;
                     /* if(!v) printf("coords [%i, %i]\n", (int)(round(ray.P[1]+sizeOfPaperY*.5)),(int)round(ray.P[0]+sizeOfPaperX*.5)); */
                     /* outArr[(int)round(ray.P[1]+maxOutSide*.5)*(maxOutSide)+(int)round(ray.P[0]+maxOutSide*.5)] = 0; */
@@ -470,40 +384,18 @@ void generateOutputImage(char * imgArr, struct coord2D *newCoordArr, int *outArr
                     //outArr[(int)(round(ray.P[1]*1.5+sizeOfPaperY*.5+200)*(sizeOfPaperX)+(int)round(ray.P[0]*2+sizeOfPaperX*.5-200))] = 0;
                     //outArr[(int)(round((ray.P[1]+200)*1.5+sizeOfPaperY*.5)*(sizeOfPaperX)+(int)round(ray.P[0]+sizeOfPaperX*.5))] = 0;
                     //outArr[(int)(round(ray.P[1]*3.5-150)*(sizeOfPaperX)+(int)round(ray.P[0]*3.5-400))] = 0;
-                    outArr[(int)(Y)*(sizeOfPaperX)+(int)(X)] = 0;
+                    outArr[(int)(finalY)*(sizeOfPaperX)+(int)(finalX)] = 0;
                     if(!v)printf("@");
                 }else{
+                    if(!v)printf("Doesn't fit coord\n");
                     if(!v)printf("-");
                     //outArr[(int)(round(ray.P[1]+sizeOfPaperY*.5))*(sizeOfPaperX)+(int)round(ray.P[0]+sizeOfPaperX*.5)] = 1; 
                 }
             }
-            /* if(intersects == 1){ */
-            /*     if(!v){ */
-            /*         printVector(ray.P, "P  "); */
-            /*     } */
-            /*     /1* ray.P[0] = ray.O[0] + ray.D[0] * t; *1/ */
-            /*     /1* ray.P[1] = ray.O[1] + ray.D[1] * t; *1/ */
-            /*     /1* ray.P[2] = ray.O[2] + ray.D[2] * t; *1/ */
-
-            /*     if(ray.P[0]< maxOutSide && ray.P[0]>=0 && ray.P[1]< maxOutSide && ray.P[1]>=0){ */
-            /*         outArr[(int)(ray.P[1])*(maxOutSide)+(int)(ray.P[0])] = 1; */
-            /*     }else{ */
-            /*         outArr[(int)(ray.P[1])*(maxOutSide)+(int)(ray.P[0])] = 0; */
-            /*     } */
-            /* }else{ */
-            /*     outArr[(int)(ray.P[1])*(maxOutSide)+(int)(ray.P[0])] = 0; */
-            /* } */
-            if(!v) printf("---\n");
         }
+        //wanted for the "-"/"@" quick show of how many points are hit/missed
+        if(!v)printf("---\n"); 
     }
-    printf("\n");
-    for(int j = -5; j<=5;j++){
-        for(int i =-5; i<=5;i++){
-            //TODO check if goes off page, shouldn't
-            //outArr[(int)(round(lightPoint[1]+j)*(sizeOfPaperX)+(int)round(lightPoint[0]+i))] = 0;
-        }
-    }
-    /* printf("\n\n\n"); */
     if(v!=4){
         fprintf(writeFile, "P2\n%i %i\n2\n", sizeOfPaperX, sizeOfPaperY);
         for(int j = 0; j<sizeOfPaperY;j++){
@@ -522,7 +414,6 @@ void generateOutputImage(char * imgArr, struct coord2D *newCoordArr, int *outArr
             fprintf(writeFile, "\n");
         }
     }
-
 }
 
 double findT(Point *verts, struct Polygon poly, struct Ray ray, int *i_s, Vector N){
@@ -653,7 +544,7 @@ void findCLeftI(double C[][2], double CLeftI[][3]){
     double det;
     double eps = 0.01;
     det = C[0][0]*C[2][1]-C[0][1]*C[2][0];
-    printf("det02: %f\n", det);
+    if(!v)printf("det02: %f\n", det);
     if(fabs(0-det) > eps){
         det = 1/det;
         CLeftI[0][0] =    C[2][1]*det;
@@ -665,7 +556,7 @@ void findCLeftI(double C[][2], double CLeftI[][3]){
         CLeftI[1][1] = 0;
     }else{
         det = C[0][0]*C[1][1]-C[0][1]*C[1][0];
-        printf("det02 was 0 so det01 is %f\n", det);
+        if(!v)printf("det02 was 0 so det01 is %f\n", det);
         if(fabs(0-det) > eps){
             det = 1/det;
             CLeftI[0][0] =    C[1][1]*det;
@@ -678,7 +569,7 @@ void findCLeftI(double C[][2], double CLeftI[][3]){
         }else{
 
             det = C[1][0]*C[2][1]-C[1][1]*C[2][0];
-            printf("det01 was 0 so det12 is %f\n", det);
+            if(!v)printf("det01 was 0 so det12 is %f\n", det);
             if(fabs(0-det) > eps){
                 det = 1/det;
                 CLeftI[0][1] =    C[2][1]*det;
@@ -737,7 +628,7 @@ void changeBasis(Point *a, double CLeftI[][3]){
         printf("  [[%f, %f, %f],\n", CLeftI[0][0],CLeftI[0][1],CLeftI[0][2]);
         printf("  [[%f, %f, %f]]\n", CLeftI[1][0],CLeftI[1][1],CLeftI[1][2]);
     }
-       tmpa0= CLeftI[0][0]*(*a)[0]+CLeftI[0][1]*(*a)[1]+CLeftI[0][2]*(*a)[2];
+    tmpa0= CLeftI[0][0]*(*a)[0]+CLeftI[0][1]*(*a)[1]+CLeftI[0][2]*(*a)[2];
     (*a)[1] = CLeftI[1][0]*(*a)[0]+CLeftI[1][1]*(*a)[1]+CLeftI[1][2]*(*a)[2];
     (*a)[0] = tmpa0;
     (*a)[2] = 0;
@@ -755,4 +646,22 @@ void findMinMax(double X, double Y, double *minMaxX, double *minMaxY){
     if(Y > minMaxY[1]){
         minMaxY[1] = Y;
     }
+}
+double findMaxZValueCoord(){
+    float maxZValue;
+    float tmpCompareVal;
+    //Get the Z (3rd) value of the 1st row with coords
+    maxZValue = faces[1][2];
+    for(int i = 0; i<numFaces;i++){
+        //Want to skip 1st because gives the coord id
+        //Want to go <=numFaces because the first line is the faceVertId
+        //and then has numSides more
+        for(int j = 1; j<=numSides;j++){
+            tmpCompareVal = faces[i*(numSides+1)+j][2];
+            if(maxZValue < tmpCompareVal){
+                maxZValue = tmpCompareVal;
+            }
+        }
+    }
+    return maxZValue;
 }
