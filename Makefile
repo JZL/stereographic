@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -O3 -g -Wall -Wvla -lm #-Werror -Wno-error=unused-variable
+CFLAGS = -O3 -g -Wall -Wvla -lm -pthread #-Werror -Wno-error=unused-variable
 
 all: img
 

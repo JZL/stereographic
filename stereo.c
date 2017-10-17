@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <math.h>
+#include <pthread.h>
 #include "RayPolygon.h"
 #include "coords.c" //generated from icosahedron.py, etc
 
@@ -18,22 +19,30 @@ void   normalize             ( Vector                                           
 void   distPoints            ( Point *a, Point *b                                                    );
 void   project               ( Point *p, Vector N                                                    );
 void   newCoord              ( struct Polygon poly, Point *P, Vector N                               );
-void   findCLeftI            ( double C[][2], double CLeftI[][3]                                     );
-void   checkThatLeftInverse  ( double C[][2], double CleftI[][3]                                     );
+int    findCLeftI            ( double C[][2], double CLeftI[][3]                                     );
+int    checkThatLeftInverse  ( double C[][2], double CleftI[][3]                                     );
 void   changeBasis           ( Point *a, double CLeftI[][3]                                          );
 void   findMinMax            ( double X, double Y, double *minMaxX, double *minMaxY                  );
-double findMaxZValueCoord ( );
-void   generateOutputImage   ( char * imgArr, int **outArr, struct outlineCoord *outlineArr,
-                               struct Polygon poly, Point endPoint, int ximg, int yimg, FILE *writeFile );
+double findMaxZValueCoord    ( );
+void*   generateOutputImage   ( void* threadStructVoid);
 
 int v = 1;
 int sizeOfPaperY = 5000;
 int sizeOfPaperX = 5000;
 int numSteps = 400;
+struct thread_in {
+    pthread_t TID;
+    char * imgArr;
+    struct outlineCoord *outlineArr;
+    int faceIndex;
+    Point *endPoint;
+    int ximg;
+    int yimg;
+};
+
 int main(int argc, char **argv){
     printf("**Starting stero.c**");
     FILE *fp;
-    FILE *writeFile;
     char magicNumStr[2];
     int yimg, ximg;
     int tmpF;
@@ -100,13 +109,10 @@ int main(int argc, char **argv){
 
     Point endPoint = {ximg/2, yimg/2, (maxZValue*mult)};
     //Point endPoint   = {ximg/2, yimg/2, 2000};
-    struct Polygon poly; 
-    poly.n           = 3;
-    poly.interpolate = false;
 
-    for(int i = 0; i<(numFaces*(poly.n+1));i++){
+    for(int i = 0; i<(numFaces*(numSides+1));i++){
         if(i%(numSides+1) == 0){
-            printf("faceIDs: %f, %f, %f\n", faces[i][0], faces[i][1], faces[i][2]);
+            if(!v)printf("faceIDs: %f, %f, %f\n", faces[i][0], faces[i][1], faces[i][2]);
         }else{
             faces[i][0]*=mult;
             faces[i][1]*=mult;
@@ -115,70 +121,102 @@ int main(int argc, char **argv){
             faces[i][0]+=ximg/2;
             faces[i][1]+=yimg/2;
             faces[i][2]+=0; //so off ground
-            printVector(faces[i], "face");
+            if(!v)printVector(faces[i], "face");
+        }
+    }
+    //int *outArr = malloc(sizeof(int)*sizeOfPaperX*sizeOfPaperY);
+    struct thread_in *threadStructs = NULL;
+    threadStructs = malloc(sizeof(struct thread_in)*numFaces);
+    if(threadStructs == NULL){
+        printf("Couldn't malloc threadStructs");
+        exit(1);
+    }
+    for(int i = 0; i<numFaces;i++){
+        threadStructs[i].imgArr     = imgArr;
+        threadStructs[i].faceIndex  = i;
+        threadStructs[i].endPoint   = &endPoint;
+        threadStructs[i].ximg       = ximg;
+        threadStructs[i].yimg       = yimg;
+        int ret;
+        ret = pthread_create(&(threadStructs[i].TID),  NULL, generateOutputImage, &threadStructs[i]);
+        if(ret != 0){
+            printf("Couldn't create thread %i", i);
+            exit(1);
         }
     }
 
-    //int *outArr = malloc(sizeof(int)*sizeOfPaperX*sizeOfPaperY);
-    int **outArr = malloc(sizeof(int*)*sizeOfPaperY);
+    
+    for(int i = 0; i<numFaces;i++){
+        int tret;
+        int error_code;
+        error_code = pthread_join(threadStructs[i].TID, (void **)&tret);
+        if(error_code != 0){
+            printf("Problem joining thread\n");
+            exit(1);
+        }
+        //Error in tret
+        printf("     %02d    RETURNED : %d\n", i, tret);
+        if(tret!=0){
+            printf("Not 0...exiting\n");
+            exit(1);
+        }
+    }
+    free(imgArr);
+    free(threadStructs);
+    fclose(fp);
+    return 0;
+}
+
+
+void* generateOutputImage(void* threadStructVoid){
+    char * imgArr                   = ((struct thread_in*) threadStructVoid)->imgArr;
+    int faceIndex                   = ((struct thread_in*) threadStructVoid)->faceIndex;
+    Point *endPoint                 = ((struct thread_in*) threadStructVoid)->endPoint;
+    int ximg                        = ((struct thread_in*) threadStructVoid)->ximg;
+    int yimg                        = ((struct thread_in*) threadStructVoid)->yimg;
+
+    int **outArr;
+    outArr = malloc(sizeof(int*)*sizeOfPaperY);
     if(outArr == NULL){
         printf("Couldn't malloc outer of 2D array\n");
+        pthread_exit((void *)2);
+    }
+    struct outlineCoord *outlineArr = malloc(sizeof(struct outlineCoord)*(numSides)*numSteps);
+    if(outlineArr == NULL){
+        printf("COULDN'T MALLOC\n");
         exit(1);
     }
     for(int r = 0; r<sizeOfPaperY;r++){
        outArr[r] = malloc(sizeof(int)*sizeOfPaperX);
        if(outArr[r] == NULL){
            printf("Couldn't malloc inner of 2D array\n");
-           exit(1);
+        pthread_exit((void *)2);
        }
     }
-    struct outlineCoord *outlineArr = malloc(sizeof(struct outlineCoord)*(poly.n)*numSteps);
-    if(outlineArr == NULL){
-        printf("COULDN'T MALLOC\n");
-        printf("%s: %p\n",  "outlineArr", outlineArr);
-        fflush(stdout);
-        exit(999);
-    }
-
-    char fileName[20];
-    char faceNumber[4];
-    for(int i = 0; i<numFaces;i++){
-        poly.coordIds = faces[i*4];
-        poly.V = &faces[i*4+1];
-
-        snprintf(faceNumber, 4, "%d", i);
-        strcpy(fileName, "out/");
-        strcat(fileName, faceNumber);
-        strcat(fileName, ".pgm");
-        writeFile = fopen(fileName, "w");
-        if(writeFile == NULL){
-            printf("couldn't write to file");
-        }
-        printf("Face %02d/%d\n", i, numFaces-1);
-        generateOutputImage(imgArr, outArr, outlineArr, poly, endPoint, ximg, yimg, writeFile);
-        fclose(writeFile);
-        printf("----\n");
-    }
-
-    free(imgArr);
-    for(int r = 0; r<sizeOfPaperY;r++){
-        free(outArr[r]);
-    }
-    free(outArr);
-    free(outlineArr);
-    fclose(fp);
-    return 0;
-}
-
-
-void generateOutputImage(char * imgArr, int **outArr, struct outlineCoord
-        *outlineArr, struct Polygon poly, Point endPoint, int ximg, int yimg,
-        FILE *writeFile){
-
     Vector N;
     double minMaxX[2];
     double minMaxY[2];
+    char fileName[20];
+    char faceNumber[4];
+
+    struct Polygon poly; 
+    poly.n           = numSides;
+    poly.interpolate = false;
+    poly.coordIds    = faces[faceIndex*4];
+    poly.V           = &faces[faceIndex*4+1];
     Point *verts = poly.V;
+
+    snprintf(faceNumber, 4, "%d", faceIndex);
+    strcpy(fileName, "out/");
+    strcat(fileName, faceNumber);
+    strcat(fileName, ".pgm");
+    FILE *writeFile;
+    writeFile = fopen(fileName, "w");
+    if(writeFile == NULL){
+        printf("couldn't write to file");
+        pthread_exit((void *)2);
+    }
+    printf("Face %02d/%d Start\n", faceIndex, numFaces-1);
 
     int firstTime = 1; //for findingMinMax, if first run through loop
     //can't be i && j == 0 bc the value at [i][j] might not be == 1
@@ -227,11 +265,14 @@ void generateOutputImage(char * imgArr, int **outArr, struct outlineCoord
     C[1][1] =secondAxis[1]; 
     C[2][1] =secondAxis[2]; 
 
-    findCLeftI(C, CLeftI);
+    //Both runs findCLeftI and checks that is equal to 0
+    if(findCLeftI(C, CLeftI) != 0){
+        pthread_exit((void *)2);
+    }
 
 
 
-    Point lightPoint = {endPoint[0], endPoint[1], endPoint[2]};
+    Point lightPoint = {*endPoint[0], *endPoint[1], *endPoint[2]};
     if(!v)printVector(lightPoint, "lightPointBef");
     changeBasis(&lightPoint, CLeftI);
     if(!v)printVector(lightPoint, "lightPointAft");
@@ -293,10 +334,10 @@ void generateOutputImage(char * imgArr, int **outArr, struct outlineCoord
             findMinMax(newX, newY, minMaxX, minMaxY);
             outlineArr[outLineIndex].X       = newX;
             outlineArr[outLineIndex].Y       = newY;
-            outlineArr[outLineIndex].coordID = 1;
+            //outlineArr[outLineIndex].coordID = 1;
         }
     }
-    printf("minX: %f, minY: %f\n", minMaxX[0], minMaxY[0]);
+    //printf("minX: %f, minY: %f\n", minMaxX[0], minMaxY[0]);
     if(minMaxX[1] - minMaxX[0] > sizeOfPaperX){
         printf("WILL OVERFLOW IN X DIREACTION\n");
     }
@@ -311,9 +352,8 @@ void generateOutputImage(char * imgArr, int **outArr, struct outlineCoord
         if( newX>=sizeOfPaperX||newX<0||
             newY>=sizeOfPaperY||newY<0){
             //If this happens, is not going to show whole thing
-            printf("outline extends past outArr!\n");
-            exit(1);
-            continue;
+            printf("outline extends past outArr! %i\n", faceIndex );
+            pthread_exit((void *)2);
         }
         /* If want to debug which face is on (and what polarity), set coordID
          * above to be something like ((i*1000+9)+(i+1)%poly.n) to give xxx9yyy
@@ -331,17 +371,13 @@ void generateOutputImage(char * imgArr, int **outArr, struct outlineCoord
                 ray.O[1] = i;//y
                 ray.O[2] = 0;//z
 
-                /* endPoint[0] = i; */
-                /* endPoint[1] = j; */
-                /* endPoint[2] = 21; */
-
-                pointSub(ray.O, endPoint, &ray.D);
+                pointSub(ray.O, *endPoint, &ray.D);
                 if(!v)printf("rayDlengthB: %f\n", (ray.D[0]*ray.D[0]+ray.D[1]*ray.D[1]+ray.D[2]*ray.D[2]));
                 normalize(ray.D);
                 if(!v)printf("rayDlengthA: %f\n", (ray.D[0]*ray.D[0]+ray.D[1]*ray.D[1]+ray.D[2]*ray.D[2]));
                 if(!v){
                     printVector(ray.O, "O  ");
-                    printVector(endPoint, "End");
+                    printVector(*endPoint, "End");
                     printVector(ray.D, "D  ");
                 }
 
@@ -422,6 +458,14 @@ void generateOutputImage(char * imgArr, int **outArr, struct outlineCoord
             fprintf(writeFile, "\n");
         }
     }
+    for(int r = 0; r<sizeOfPaperY;r++){
+        free(outArr[r]);
+    }
+    free(outArr);
+    free(outlineArr);
+    fclose(writeFile);
+    printf("     %02d    Finished\n", faceIndex);
+    pthread_exit(NULL);
 }
 
 double findT(Point *verts, struct Polygon poly, struct Ray ray, int *i_s, Vector N){
@@ -547,7 +591,7 @@ void newCoord(struct Polygon poly, Point *P, Vector N){
     (*P)[1] = vectorDot(*P,  lastAxis);
 }
 
-void findCLeftI(double C[][2], double CLeftI[][3]){
+int findCLeftI(double C[][2], double CLeftI[][3]){
     //https://math.stackexchange.com/questions/79301/left-inverses-for-matrix
     double det;
     double eps = 0.01;
@@ -589,7 +633,7 @@ void findCLeftI(double C[][2], double CLeftI[][3]){
                 CLeftI[1][0] = 0;
             }else{
                 printf("Can't find det");
-                exit(1);
+                return 1; //0 is a good value, 1 is bad
             }
         }
     }
@@ -602,11 +646,13 @@ void findCLeftI(double C[][2], double CLeftI[][3]){
         printf("Left Inverse: \n");
         printf("  [[%f, %f, %f],\n", CLeftI[0][0],CLeftI[0][1],CLeftI[0][2]);
         printf("  [[%f, %f, %f]]\n", CLeftI[1][0],CLeftI[1][1],CLeftI[1][2]);
+        //Probably don't want to waste on checking inverse
+        return checkThatLeftInverse(C, CLeftI);
     }
-    checkThatLeftInverse(C, CLeftI);
+    return 0;
 }
 
-void checkThatLeftInverse(double C[][2], double CLeftI[][3]){
+int checkThatLeftInverse(double C[][2], double CLeftI[][3]){
     double eps = 0.01;
     double a00, a01, a10, a11;
     a00 = CLeftI[0][0]*C[0][0]+CLeftI[0][1]*C[1][0]+CLeftI[0][2]*C[2][0]+0.0;
@@ -623,9 +669,10 @@ void checkThatLeftInverse(double C[][2], double CLeftI[][3]){
     }
     if(!((fabs(a00-1)<eps && fabs(a01-0.0)<eps && fabs(a10-0.0)<eps && fabs(a11-1.0)<eps))){
         printf("LeftC isn't a left inverse\n");
-        exit(1);
+        return 1; //1 is good, 0 is bad
     }else{
-        printf("Valid LEFT INVERSE\n");
+        if(!v)printf("Valid LEFT INVERSE\n");
+        return 0;
     }
 }
 
