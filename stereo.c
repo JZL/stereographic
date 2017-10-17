@@ -98,7 +98,8 @@ int main(int argc, char **argv){
     maxZValue = findMaxZValueCoord();
     printf("Max ZValue: %f\n", maxZValue);
 
-    Point endPoint = {ximg/2, yimg/2, (maxZValue*mult)};
+    //Can change 0->1 so top of light isn't right in middle, untested
+    Point endPoint = {ximg/2, yimg/2, ((maxZValue+0)*mult)};
     //Point endPoint   = {ximg/2, yimg/2, 2000};
     struct Polygon poly; 
     poly.n           = 3;
