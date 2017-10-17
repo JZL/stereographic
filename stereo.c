@@ -114,7 +114,7 @@ int main(int argc, char **argv){
 
             faces[i][0]+=ximg/2;
             faces[i][1]+=yimg/2;
-            faces[i][2]+=0; //so off ground
+            faces[i][2]+=0.001; //so off ground
             printVector(faces[i], "face");
         }
     }
