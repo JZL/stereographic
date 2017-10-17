@@ -23,7 +23,7 @@ void   checkThatLeftInverse  ( double C[][2], double CleftI[][3]                
 void   changeBasis           ( Point *a, double CLeftI[][3]                                          );
 void   findMinMax            ( double X, double Y, double *minMaxX, double *minMaxY                  );
 double findMaxZValueCoord ( );
-void   generateOutputImage   ( char * imgArr, int *outArr, struct outlineCoord *outlineArr,
+void   generateOutputImage   ( char * imgArr, int **outArr, struct outlineCoord *outlineArr,
                                struct Polygon poly, Point endPoint, int ximg, int yimg, FILE *writeFile );
 
 int v = 1;
@@ -119,12 +119,23 @@ int main(int argc, char **argv){
         }
     }
 
-    int *outArr = malloc(sizeof(int)*sizeOfPaperX*sizeOfPaperY);
+    //int *outArr = malloc(sizeof(int)*sizeOfPaperX*sizeOfPaperY);
+    int **outArr = malloc(sizeof(int*)*sizeOfPaperY);
+    if(outArr == NULL){
+        printf("Couldn't malloc outer of 2D array\n");
+        exit(1);
+    }
+    for(int r = 0; r<sizeOfPaperY;r++){
+       outArr[r] = malloc(sizeof(int)*sizeOfPaperX);
+       if(outArr[r] == NULL){
+           printf("Couldn't malloc inner of 2D array\n");
+           exit(1);
+       }
+    }
     struct outlineCoord *outlineArr = malloc(sizeof(struct outlineCoord)*(poly.n)*numSteps);
-    if(outlineArr == NULL|| outArr == NULL){
+    if(outlineArr == NULL){
         printf("COULDN'T MALLOC\n");
         printf("%s: %p\n",  "outlineArr", outlineArr);
-        printf("%s: %p\n",      "outArr", outArr);
         fflush(stdout);
         exit(999);
     }
@@ -150,6 +161,9 @@ int main(int argc, char **argv){
     }
 
     free(imgArr);
+    for(int r = 0; r<sizeOfPaperY;r++){
+        free(outArr[r]);
+    }
     free(outArr);
     free(outlineArr);
     fclose(fp);
@@ -157,7 +171,7 @@ int main(int argc, char **argv){
 }
 
 
-void generateOutputImage(char * imgArr, int *outArr, struct outlineCoord
+void generateOutputImage(char * imgArr, int **outArr, struct outlineCoord
         *outlineArr, struct Polygon poly, Point endPoint, int ximg, int yimg,
         FILE *writeFile){
 
@@ -172,7 +186,7 @@ void generateOutputImage(char * imgArr, int *outArr, struct outlineCoord
     //TODO could just do the minMax for the surrounding shape, if is less than that, won't intersect
     for(int i = 0; i<sizeOfPaperY;i++){
         for(int j = 0; j<sizeOfPaperX;j++){
-            outArr[i*sizeOfPaperX+j] = 2;
+            outArr[i][j] = 2;
         }
     }
 
@@ -305,7 +319,7 @@ void generateOutputImage(char * imgArr, int *outArr, struct outlineCoord
          * above to be something like ((i*1000+9)+(i+1)%poly.n) to give xxx9yyy
          * for the verts) and then make below = outlineArr[i].coordID;
          */
-        outArr[(int)(newY*sizeOfPaperX+newX)] = 0; // = black
+        outArr[(int)(newY)][(int)(newX)] = 0; // = black
     }
     for(int i = 0; i<yimg;i++){
         for(int j = 0; j<ximg;j++){
@@ -378,7 +392,7 @@ void generateOutputImage(char * imgArr, int *outArr, struct outlineCoord
                     //outArr[(int)(round(ray.P[1]*1.5+sizeOfPaperY*.5+200)*(sizeOfPaperX)+(int)round(ray.P[0]*2+sizeOfPaperX*.5-200))] = 0;
                     //outArr[(int)(round((ray.P[1]+200)*1.5+sizeOfPaperY*.5)*(sizeOfPaperX)+(int)round(ray.P[0]+sizeOfPaperX*.5))] = 0;
                     //outArr[(int)(round(ray.P[1]*3.5-150)*(sizeOfPaperX)+(int)round(ray.P[0]*3.5-400))] = 0;
-                    outArr[(int)(finalY)*(sizeOfPaperX)+(int)(finalX)] = 0;
+                    outArr[(int)(finalY)][(int)(finalX)] = 0;
                     if(!v)printf("@");
                 }else{
                     if(!v)printf("Doesn't fit coord\n");
@@ -403,7 +417,7 @@ void generateOutputImage(char * imgArr, int *outArr, struct outlineCoord
                     //fprintf(writeFile, "%i ", outArr[j*(sizeOfPaperX)+i]);
                     /* fflush(stdout); */
                 }
-                fprintf(writeFile, "%i ", outArr[j*(sizeOfPaperX)+i]);
+                fprintf(writeFile, "%i ", outArr[j][i]);
             }
             fprintf(writeFile, "\n");
         }
