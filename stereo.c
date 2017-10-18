@@ -24,20 +24,18 @@ int    checkThatLeftInverse  ( double C[][2], double CleftI[][3]                
 void   changeBasis           ( Point *a, double CLeftI[][3]                                          );
 void   findMinMax            ( double X, double Y, double *minMaxX, double *minMaxY                  );
 double findMaxZValueCoord    ( );
-void*   generateOutputImage   ( void* threadStructVoid);
+void*   generateOutputImage  ( void* threadStructVoid);
 
 //Important global vars to change functionality:
-int v = 1; //How verbose
-
+int v            = 1; //How verbose
 
 int sizeOfPaperY = 5000;
 int sizeOfPaperX = 5000;//Probably should stay the same but possible differetn
 
-int hasColor = 0;//0 for b/w (input pgm is only 1/0, 1 for color (input ppm has 9 chars p/ RRRGGGBBB)
+int hasColor     = 0;//0 for b/w (input pgm is only 1/0, 1 for color (input ppm has 9 chars p/ RRRGGGBBB)
 
-int numSteps = 400; //Used for outline of image, 0 removes, greater then number, the darker the outline
+int numSteps     = 400; //Used for outline of image, 0 removes, greater then number, the darker the outline
 
-int numSteps = 400;
 struct thread_in {
     pthread_t TID;
     char * imgArr;
@@ -46,6 +44,7 @@ struct thread_in {
     Point *endPoint;
     int ximg;
     int yimg;
+    int colorDepth;
 };
 
 int main(int argc, char **argv){
@@ -174,6 +173,7 @@ int main(int argc, char **argv){
         threadStructs[i].endPoint   = &endPoint;
         threadStructs[i].ximg       = ximg;
         threadStructs[i].yimg       = yimg;
+        threadStructs[i].colorDepth = colorDepth;
         int ret;
         ret = pthread_create(&(threadStructs[i].TID),  NULL, generateOutputImage, &threadStructs[i]);
         if(ret != 0){
@@ -205,9 +205,14 @@ int main(int argc, char **argv){
 }
 
 
-void generateOutputImage(char * imgArr, int **outArr, struct outlineCoord
-        *outlineArr, struct Polygon poly, Point endPoint, int ximg, int yimg,
-        FILE *writeFile, int colorDepth){
+
+void*   generateOutputImage   ( void* threadStructVoid){
+    char * imgArr   = ((struct thread_in*) threadStructVoid)->imgArr;
+    int faceIndex   = ((struct thread_in*) threadStructVoid)->faceIndex;
+    Point *endPoint = ((struct thread_in*) threadStructVoid)->endPoint;
+    int ximg        = ((struct thread_in*) threadStructVoid)->ximg;
+    int yimg        = ((struct thread_in*) threadStructVoid)->yimg;
+    int colorDepth  = ((struct thread_in*) threadStructVoid)->colorDepth;
 
     int **outArr;
     outArr = malloc(sizeof(int*)*sizeOfPaperY);
@@ -238,7 +243,7 @@ void generateOutputImage(char * imgArr, int **outArr, struct outlineCoord
     poly.interpolate = false;
     poly.coordIds    = faces[faceIndex*4];
     poly.V           = &faces[faceIndex*4+1];
-    Point *verts = poly.V;
+    Point *verts     = poly.V;
 
     snprintf(faceNumber, 4, "%d", faceIndex);
     strcpy(fileName, "out/");
@@ -405,7 +410,7 @@ void generateOutputImage(char * imgArr, int **outArr, struct outlineCoord
     char charColor[10]; //9+1 for \0
     charColor[9] = '\0'; //Won't be overwritten
     double finalX, finalY;
-    int   color; //from charColor with atoi
+    int   color = 0; //from charColor with atoi
     for(int i = 0; i<yimg;i++){
         for(int j = 0; j<ximg;j++){
             int X = 0;
@@ -424,7 +429,7 @@ void generateOutputImage(char * imgArr, int **outArr, struct outlineCoord
                     ray.O[1] = i;//y
                     ray.O[2] = 0;//z
 
-                    pointSub(ray.O, endPoint, &ray.D);
+                    pointSub(ray.O, *endPoint, &ray.D);
                     if(!v)printf("rayDlengthB: %f\n", (ray.D[0]*ray.D[0]+ray.D[1]*ray.D[1]+ray.D[2]*ray.D[2]));
                     normalize(ray.D);
                     if(!v)printf("rayDlengthA: %f\n", (ray.D[0]*ray.D[0]+ray.D[1]*ray.D[1]+ray.D[2]*ray.D[2]));
