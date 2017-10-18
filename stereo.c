@@ -29,10 +29,10 @@ void   generateOutputImage   ( char * imgArr, int **outArr, struct outlineCoord 
 //Important global vars to change functionality:
 int v = 1; //How verbose
 
-int sizeOfPaperY = 1000;
-int sizeOfPaperX = 1000;//Probably should stay the same but possible differetn
+int sizeOfPaperY = 5000;
+int sizeOfPaperX = 5000;//Probably should stay the same but possible differetn
 
-int hasColor = 1;//0 for b/w (input pgm is only 1/0, 1 for color (input ppm has 9 chars p/ RRRGGGBBB)
+int hasColor = 0;//0 for b/w (input pgm is only 1/0, 1 for color (input ppm has 9 chars p/ RRRGGGBBB)
 
 int numSteps = 400; //Used for outline of image, 0 removes, greater then number, the darker the outline
 
