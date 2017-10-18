@@ -1,6 +1,6 @@
 echo "Starting to make Icosahedron net..."
 cd out/
-color=0 #1 for color, 0 for not
+color=1 #1 for color, 0 for not
 if [ "$color" -eq "0" ]; then
     mogrify  -trim +repage -transparent white -shave 1x1 -trim -format png -path ./png ./*.pgm
 else

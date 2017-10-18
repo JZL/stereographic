@@ -32,7 +32,7 @@ int v            = 1; //How verbose
 int sizeOfPaperY = 5000;
 int sizeOfPaperX = 5000;//Probably should stay the same but possible differetn
 
-int hasColor     = 0;//0 for b/w (input pgm is only 1/0, 1 for color (input ppm has 9 chars p/ RRRGGGBBB)
+int hasColor     = 1;//0 for b/w (input pgm is only 1/0, 1 for color (input ppm has 9 chars p/ RRRGGGBBB)
 
 int numSteps     = 400; //Used for outline of image, 0 removes, greater then number, the darker the outline
 
@@ -156,7 +156,7 @@ int main(int argc, char **argv){
 
             faces[i][0]+=ximg/2;
             faces[i][1]+=yimg/2;
-            faces[i][2]+=0.001; //so off ground
+            faces[i][2]+=0.5; //so off ground
             if(!v)printVector(faces[i], "face");
         }
     }
@@ -248,7 +248,11 @@ void*   generateOutputImage   ( void* threadStructVoid){
     snprintf(faceNumber, 4, "%d", faceIndex);
     strcpy(fileName, "out/");
     strcat(fileName, faceNumber);
-    strcat(fileName, ".pgm");
+    if(hasColor == 0){
+        strcat(fileName, ".pgm");
+    }else{
+        strcat(fileName, ".ppm");
+    }
     FILE *writeFile;
     writeFile = fopen(fileName, "w");
     if(writeFile == NULL){
@@ -267,9 +271,9 @@ void*   generateOutputImage   ( void* threadStructVoid){
                 //In pgm, maxValue(=2 in this case) is white
                 outArr[i][j] = 2;
             }else{
-                //In ppm, white = 000 000 000 = 0 when I compress together
+                //In ppm, white = 255 255 255 = 255255255when I compress together
                 //Could be just 0 but the compiler will fix and this reminds me
-                outArr[i][j] = 000000000;
+                outArr[i][j] = 255255255;
             }
         }
     }
@@ -338,16 +342,16 @@ void*   generateOutputImage   ( void* threadStructVoid){
     //The points need to be in the circular order
     Point a, b;
     Vector m;
-    for(int i = 0; i<(poly.n); i++){
+    for(int i = 0; i<(numSides); i++){
         a[0] = verts[i][0];
         a[1] = verts[i][1];
         a[2] = verts[i][2];
 
-        b[0] = verts[(i+1)%poly.n][0];
-        b[1] = verts[(i+1)%poly.n][1];
-        b[2] = verts[(i+1)%poly.n][2];
+        b[0] = verts[(i+1)%numSides][0];
+        b[1] = verts[(i+1)%numSides][1];
+        b[2] = verts[(i+1)%numSides][2];
 
-        if(!v)printf("\ngoing between %i and %i\n", i, (i+1)%poly.n);
+        if(!v)printf("\ngoing between %i and %i\n", i, (i+1)%numSides);
         if(!v){
             printVector(a, "vertA");
             printVector(b, "vertB");
@@ -391,7 +395,7 @@ void*   generateOutputImage   ( void* threadStructVoid){
         printf("WILL OVERFLOW IN Y DIREACTION\n");
     }
 
-    for(int i = 0; i<(poly.n*numSteps);i++){
+    for(int i = 0; i<(numSides*numSteps);i++){
         double newX, newY; //X and Y which are min/maxed so > 0
         newX =  round(outlineArr[i].X-minMaxX[0]);
         newY =  round(outlineArr[i].Y-minMaxY[0]);
@@ -410,7 +414,7 @@ void*   generateOutputImage   ( void* threadStructVoid){
     char charColor[10]; //9+1 for \0
     charColor[9] = '\0'; //Won't be overwritten
     double finalX, finalY;
-    int   color = 0; //from charColor with atoi
+    int   color = 255255255; //from charColor with atoi
     for(int i = 0; i<yimg;i++){
         for(int j = 0; j<ximg;j++){
             int X = 0;
@@ -423,7 +427,7 @@ void*   generateOutputImage   ( void* threadStructVoid){
                     printf("color: %i\n", color);
                 }
             }
-            if((hasColor == 0 && imgArr[i*ximg+j] == '1') ||(hasColor == 1 && color == 255255255)){
+            if((hasColor == 0 && imgArr[i*ximg+j] != '0') ||(hasColor == 1 && color != 255255255)){
                     //Is white so skip
                     ray.O[0] = j;//x
                     ray.O[1] = i;//y
