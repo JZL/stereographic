@@ -17,5 +17,5 @@ coords.c: icosahedronCoord.py
 
 clean:
 	$(RM) *.o stereo
-	$(RM) out/*.p*m out/png/*png out/png/rot/*
+	$(RM) out/*.p*m out/png/*.png* out/png/rot/* out/*.png
 	$(RM) net.png cropped.png withSpaces.p*m in.p*m
