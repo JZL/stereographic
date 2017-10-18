@@ -1,3 +1,4 @@
+#!/bin/bash
 #http://www.imagemagick.org/Usage/resize/
 size=5000;
 color=1 #1 for color, 0 for not
@@ -13,7 +14,7 @@ echo "**Starting to make input image**"
 convert "$1" -gravity center -crop "$size"x"$size"+0+0 -extent "$size"x"$size" cropped.png
 ls -lh cropped*
 echo "done converting to png"
-if ["$color" -eq "0"]; then
+if [ "$color" -eq "0" ]; then
     convert -compress none cropped.png withSpaces.pbm
     echo "done converting to interim pbm"
     cat <(head -2 withSpaces.pbm) <(tail -n +3 withSpaces.pbm|tr -d "[ \n]") > in.pbm
