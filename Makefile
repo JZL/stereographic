@@ -15,6 +15,9 @@ RayPolygon:
 coords.c: icosahedronCoord.py
 	python icosahedronCoord.py
 
+managePNG: managePNG.c
+	$(CC) $(CFLAGS) -lpng managePNG.c
+
 clean:
 	$(RM) *.o stereo
 	$(RM) out/*.p*m out/png/*.png* out/png/rot/* out/*.png
