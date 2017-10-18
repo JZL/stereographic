@@ -1,6 +1,6 @@
 echo "Starting to make Icosahedron net..."
 cd out/
-mogrify  -trim +repage -transparent white -shave 1x1 -trim -format png -path ./png ./*.pgm
+mogrify  -trim +repage -transparent white -shave 1x1 -trim -format png -path ./png ./*.p*m
 
 convert ./png/0.png  -quality 01 -flip ./png/rot/0.png
 convert ./png/4.png  -quality 01 -flip ./png/rot/4.png

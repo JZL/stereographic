@@ -2,10 +2,10 @@
 *.swp
 stereo
 cropped.png
-in.pbm
-withSpaces.pbm
+in.p*m
+withSpaces.p*m
 RayPolygon.o
-test.pgm
-out/*.pgm
+test.p*m
+out/*.p*m
 *.png
 *.png~*
