@@ -26,7 +26,7 @@ double findMaxZValueCoord ( );
 void   generateOutputImage   ( char * imgArr, int **outArr, struct outlineCoord *outlineArr,
                                struct Polygon poly, Point endPoint, int ximg, int yimg, FILE *writeFile, int colorDepth);
 
-//Important global vars to change functionality: 
+//Important global vars to change functionality:
 int v = 1; //How verbose
 
 int sizeOfPaperY = 1000;
@@ -51,7 +51,7 @@ int main(int argc, char **argv){
         printf("new v: %i\n", v);
     }
     //sed '2,$s/\s//g' simple.bpm |tr -d "\n" > test.smaller.pbm
-    //and then go in and and new lines to the header 
+    //and then go in and and new lines to the header
     if(hasColor == 0){
         fp = fopen("in.pbm", "r");
     }else{
@@ -135,7 +135,7 @@ int main(int argc, char **argv){
     //Can change 0->1 so top of light isn't right in middle, untested
     Point endPoint = {ximg/2, yimg/2, ((maxZValue+0)*mult)};
     //Point endPoint   = {ximg/2, yimg/2, 2000};
-    struct Polygon poly; 
+    struct Polygon poly;
     poly.n           = 3;
     poly.interpolate = false;
 
@@ -230,7 +230,7 @@ void generateOutputImage(char * imgArr, int **outArr, struct outlineCoord
                 //In pgm, maxValue(=2 in this case) is white
                 outArr[i][j] = 2;
             }else{
-                //In ppm, white = 000 000 000 = 0 when I compress together 
+                //In ppm, white = 000 000 000 = 0 when I compress together
                 //Could be just 0 but the compiler will fix and this reminds me
                 outArr[i][j] = 000000000;
             }
@@ -266,13 +266,13 @@ void generateOutputImage(char * imgArr, int **outArr, struct outlineCoord
 
     double C[3][2];
     double CLeftI[3][3];
-    C[0][0] =v0v1[0]; 
-    C[1][0] =v0v1[1]; 
-    C[2][0] =v0v1[2]; 
+    C[0][0] =v0v1[0];
+    C[1][0] =v0v1[1];
+    C[2][0] =v0v1[2];
 
-    C[0][1] =secondAxis[0]; 
-    C[1][1] =secondAxis[1]; 
-    C[2][1] =secondAxis[2]; 
+    C[0][1] =secondAxis[0];
+    C[1][1] =secondAxis[1];
+    C[2][1] =secondAxis[2];
 
     findCLeftI(C, CLeftI);
 
@@ -404,16 +404,16 @@ void generateOutputImage(char * imgArr, int **outArr, struct outlineCoord
                     if(!v)printf("t: %f\n", t);
                     if(t<=0){
                     //either error or intersection behind origin, reject
-                        if(!v)printf("t<=0\n"); 
+                        if(!v)printf("t<=0\n");
                         continue;
-                    } 
-                    if(!v)printf("i_1: %i, i_2:%i\n", i_s[0], i_s[1]); 
+                    }
+                    if(!v)printf("i_1: %i, i_2:%i\n", i_s[0], i_s[1]);
 
                     intersects = intersect(&poly, &ray, t, i_s[0], i_s[1], v);
 
                     if(!v){ printVector(ray.P, "rayPB");}
                     if(v==4){
-                        fprintf(writeFile, "%f,%f,%f\n", ray.P[0], ray.P[1], ray.P[2] ); 
+                        fprintf(writeFile, "%f,%f,%f\n", ray.P[0], ray.P[1], ray.P[2] );
                     }
                     //distPoints(&(verts[0]), &ray.P);
                     //newCoord(poly, &ray.P, N);
@@ -452,12 +452,12 @@ void generateOutputImage(char * imgArr, int **outArr, struct outlineCoord
                 }else{
                     if(!v)printf("Doesn't fit coord\n");
                     if(!v)printf("-");
-                    //outArr[(int)(round(ray.P[1]+sizeOfPaperY*.5))*(sizeOfPaperX)+(int)round(ray.P[0]+sizeOfPaperX*.5)] = 1; 
+                    //outArr[(int)(round(ray.P[1]+sizeOfPaperY*.5))*(sizeOfPaperX)+(int)round(ray.P[0]+sizeOfPaperX*.5)] = 1;
                 }
             }
         }
         //wanted for the "-"/"@" quick show of how many points are hit/missed
-        if(!v)printf("---\n"); 
+        if(!v)printf("---\n");
     }
     if(v!=4){
         if(hasColor == 0){
@@ -476,7 +476,7 @@ void generateOutputImage(char * imgArr, int **outArr, struct outlineCoord
                     //fprintf(writeFile, "%i ", outArr[j*(sizeOfPaperX)+i]);
                     /* fflush(stdout); */
                 }
-                
+
                 if(hasColor == 0){
                     fprintf(writeFile, "%i ", outArr[j][i]);
                 }else{
@@ -589,9 +589,9 @@ void normalize(Vector a){
 void distPoints(Point *a, Point *b){
     if(!v){printVector(*a, "a");}
     if(!v){printVector(*b, "b");}
-    (*b)[0] = (*b)[0] - (*a)[0]; 
-    (*b)[1] = (*b)[1] - (*a)[1]; 
-    (*b)[2] = (*b)[2] - (*a)[2]; 
+    (*b)[0] = (*b)[0] - (*a)[0];
+    (*b)[1] = (*b)[1] - (*a)[1];
+    (*b)[2] = (*b)[2] - (*a)[2];
     if(!v){printVector(*a, "a");}
 }
 void project(Point *P, Vector N){
