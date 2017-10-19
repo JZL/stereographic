@@ -1,6 +1,6 @@
 #!/bin/bash
 #http://www.imagemagick.org/Usage/resize/
-size=5000;
+size=110;
 color=1 #1 for color, 0 for not
 if [ -z "$1" ]; then
         echo "PASS IN IMAGE"

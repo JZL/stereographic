@@ -17,8 +17,7 @@
 
 #define PNG_DEBUG 3
 #include <png.h>
-
-int x, y;
+#include "managePNG.h"
 
 /*
    int width, height;
@@ -30,19 +29,13 @@ png_bytep * row_pointers;
  */
 
 
-struct pngFile{
-    int height;
-    int width;
-    png_byte color_type;
-    png_byte bit_depth;
-    png_bytep * row_pointers;
-};
-
 //Return 0 for success, 1 for error
 int read_png_file(char* file_name,   struct pngFile *outPngFile){
     png_structp png_ptr;
     png_infop info_ptr;
-    char header[8];    // 8 is the maximum size that can be checked
+    //char header[8];    // 8 is the maximum size that can be checked
+     unsigned char* header = NULL;
+    header = (unsigned char*)malloc(sizeof(unsigned char)*8);
 
     /* open file and test for it being a png */
     FILE *fp = fopen(file_name, "rb");
@@ -55,7 +48,7 @@ int read_png_file(char* file_name,   struct pngFile *outPngFile){
         return -1;
     }
     if (png_sig_cmp(header, 0, 8)){
-        ("[read_png_file] File %s is not recognized as a PNG file", file_name);
+        printf("[read_png_file] File %s is not recognized as a PNG file", file_name);
         return -1;
     }
 
@@ -104,7 +97,7 @@ int read_png_file(char* file_name,   struct pngFile *outPngFile){
     }
 
     outPngFile->row_pointers = (png_bytep*) malloc(sizeof(png_bytep) * (outPngFile->height));
-    for (y=0; y<(outPngFile->height); y++){
+    for (int y=0; y<(outPngFile->height); y++){
         outPngFile->row_pointers[y] = (png_byte*) malloc(png_get_rowbytes(png_ptr,info_ptr));
     }
 
@@ -117,11 +110,12 @@ int read_png_file(char* file_name,   struct pngFile *outPngFile){
             (png_infopp)NULL);
 
     fclose(fp);
+    free(header);
     return 0;
 }
 
 
-int write_png_file(char* file_name, png_bytep *row_pointers, struct pngFile *pngFileParam){
+int write_png_file(char* file_name, int **row_pointers, struct pngFile *pngFileParam){
 
     png_structp png_ptr;
     png_infop info_ptr;
@@ -179,8 +173,24 @@ int write_png_file(char* file_name, png_bytep *row_pointers, struct pngFile *png
         printf("[write_png_file] Error during writing bytes");
         return -1;
     }
+    
 
-    png_write_image(png_ptr, row_pointers);
+    png_byte *thisRow = (png_byte*) malloc(sizeof(png_byte)*(pngFileParam->width)*3);
+    for(int i = 0; i<pngFileParam->height;i++){
+        for(int j = 0; j<pngFileParam->width;j++){
+            /*
+            printf("h: %i, w: %i\n", pngFileParam->height, pngFileParam->width);
+            printf("%i, %i\n", i, j);
+            fflush(stdout);
+            printf("rawPoint %i\n", row_pointers[i][j]);
+            */
+            thisRow[j*3+0] = row_pointers[i][j]/1000000;
+            thisRow[j*3+1] = row_pointers[i][j]/1000%1000;
+            thisRow[j*3+2] = row_pointers[i][j]%1000;
+        }
+        png_write_row(png_ptr, thisRow);
+    }
+    //png_write_image(png_ptr, row_pointers);
 
 
     // end write
@@ -192,36 +202,11 @@ int write_png_file(char* file_name, png_bytep *row_pointers, struct pngFile *png
     png_write_end(png_ptr, NULL);
     png_destroy_write_struct(&png_ptr, &info_ptr);
     fclose(fp);
+    return 0;
 }
 
 /*
-   void process_file(void)
-   {
-   if (png_get_color_type(png_ptr, info_ptr) == PNG_COLOR_TYPE_RGB){
-   printf("[process_file] input file is PNG_COLOR_TYPE_RGB but must be PNG_COLOR_TYPE_RGBA " "(lacks the alpha channel)");
-   return -1;
-   }
-
-   if (png_get_color_type(png_ptr, info_ptr) != PNG_COLOR_TYPE_RGBA){
-   printf("[process_file] color_type of input file must be PNG_COLOR_TYPE_RGBA (%d) (is %d)", PNG_COLOR_TYPE_RGBA, png_get_color_type(png_ptr, info_ptr));
-   return -1;
-   }
-
-   for (y=0; y<height; y++) {
-   png_byte* row = row_pointers[y];
-   for (x=0; x<width; x++) {
-   png_byte* ptr = &(row[x*4]);
-   printf("Pixel at position [ %d - %d ] has RGBA values: %d - %d - %d - %d\n",
-   x, y, ptr[0], ptr[1], ptr[2], ptr[3]);
-
-// set red value to 0 and green value to the blue one
-ptr[0] = 0;
-ptr[1] = ptr[2];
-}
-}
-}
-
- */
+   //NEED TO FREE
 int main(int argc, char **argv){
     struct pngFile readPngFile;
     if(read_png_file("libpngTests/test.png", &readPngFile)!=0){
@@ -229,8 +214,8 @@ int main(int argc, char **argv){
         exit(1);
     }
 
-    for (y=0; y<readPngFile.height; y++) {
-        for (x=0; x<readPngFile.width; x++) {
+    for (int y=0; y<readPngFile.height; y++) {
+        for (int x=0; x<readPngFile.width; x++) {
             png_byte* ptr = &(readPngFile.row_pointers[y][x*3]);
             ptr[0] = 255;
             ptr[1] = 255;
@@ -245,8 +230,9 @@ int main(int argc, char **argv){
         exit(1);
     }
 
-    for (y=0; y<readPngFile.height; y++){
+    for (int y=0; y<readPngFile.height; y++){
         free(readPngFile.row_pointers[y]);
     }
     free(readPngFile.row_pointers);
 }
+*/

@@ -1,13 +1,13 @@
-CC = gcc
-CFLAGS = -O3 -g -Wall -Wvla -lm -pthread #-Werror -Wno-error=unused-variable
+CC = clang-3.9
+CFLAGS = -O3 -g -Wall -Wvla -lm -pthread -lpng #-Werror -Wno-error=unused-variable
 
 all: img
 
 img: stereo
 	./stereo && ./makeIcosahedronNet.sh
 
-stereo: RayPolygon coords.c
-	$(CC) $(CFLAGS) -O3 -o stereo stereo.c RayPolygon.o -lm
+stereo: RayPolygon managePNG coords.c
+	$(CC) $(CFLAGS) -o stereo stereo.c RayPolygon.o managePNG.o -lm
 
 RayPolygon:
 	$(CC) $(CFLAGS) -c RayPolygon.c
@@ -16,7 +16,7 @@ coords.c: icosahedronCoord.py
 	python icosahedronCoord.py
 
 managePNG: managePNG.c
-	$(CC) $(CFLAGS) -lpng managePNG.c
+	$(CC) $(CFLAGS) -c  managePNG.c
 
 clean:
 	$(RM) *.o stereo
