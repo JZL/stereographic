@@ -1,5 +1,6 @@
 /*
 #include <stdarg.h>
+
  * Copyright 2002-2010 Guillaume Cottenceau.
  *
  * This software may be freely redistributed under the terms
@@ -14,6 +15,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 
 #define PNG_DEBUG 3
 #include <png.h>
@@ -83,11 +85,10 @@ int read_png_file(char* file_name,   struct pngFile *outPngFile){
     outPngFile->height = png_get_image_height(png_ptr, info_ptr);
     outPngFile->color_type = png_get_color_type(png_ptr, info_ptr);
     outPngFile->bit_depth = png_get_bit_depth(png_ptr, info_ptr);
-
-    /* Uneeded - TODO: needed for output if want to be identical to input
-       number_of_passes = png_set_interlace_handling(png_ptr);
-       png_read_update_info(png_ptr, info_ptr);
-     */
+    /*
+    number_of_passes = png_set_interlace_handling(png_ptr);
+    png_read_update_info(png_ptr, info_ptr);
+    */
 
 
     /* read file */
@@ -103,8 +104,25 @@ int read_png_file(char* file_name,   struct pngFile *outPngFile){
 
     //If going to read multiple rows at once, need to deal with interlacing
     png_read_image(png_ptr, outPngFile->row_pointers);
+    switch(png_get_color_type(png_ptr, info_ptr)){
+        case PNG_COLOR_TYPE_RGB:
+            printf("IS AN RGB;\n");
+            break;
+        case PNG_COLOR_TYPE_GRAY:
+            printf("Is type grey\n");
+        case PNG_COLOR_TYPE_GRAY_ALPHA:
+            printf("Is type grey alpha\n");
+        case PNG_COLOR_TYPE_PALETTE:
+            printf("Is type pallete\n");
+        case PNG_COLOR_TYPE_RGB_ALPHA:
+            printf("is type rgba\n");
+        default:
+            printf("unknown type\n");
+        //Will have extra printfs but will all cascade to 1
+        return -1;
+    }
 
-    png_read_end(png_ptr, (png_infop)NULL);
+    //png_read_end(png_ptr, (png_infop)NULL);
 
     png_destroy_read_struct(&png_ptr, &info_ptr,
             (png_infopp)NULL);
@@ -115,7 +133,7 @@ int read_png_file(char* file_name,   struct pngFile *outPngFile){
 }
 
 
-int write_png_file(char* file_name, int **row_pointers, struct pngFile *pngFileParam){
+int write_png_file(char* file_name, int **row_pointers, int width, int height, png_byte bit_depth, png_byte color_type){
 
     png_structp png_ptr;
     png_infop info_ptr;
@@ -157,13 +175,10 @@ int write_png_file(char* file_name, int **row_pointers, struct pngFile *pngFileP
     }
 
     //TODO: can set title, author, fun
-    png_set_IHDR(
-            png_ptr, info_ptr, 
-            pngFileParam->width,
-            pngFileParam->height,
-            pngFileParam->bit_depth,
-            pngFileParam->color_type,
-            PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
+    printf("w: %i, h: %i\n", width, height);
+    png_set_IHDR(png_ptr, info_ptr, width, height, bit_depth, color_type,
+            PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_BASE,
+            PNG_FILTER_TYPE_BASE);
 
     png_write_info(png_ptr, info_ptr);
 
@@ -175,18 +190,25 @@ int write_png_file(char* file_name, int **row_pointers, struct pngFile *pngFileP
     }
     
 
-    png_byte *thisRow = (png_byte*) malloc(sizeof(png_byte)*(pngFileParam->width)*3);
-    for(int i = 0; i<pngFileParam->height;i++){
-        for(int j = 0; j<pngFileParam->width;j++){
+    png_byte *thisRow = (png_byte *)malloc(4*sizeof(png_byte)*(width));
+    png_byte *ptr;
+    for(int i = 0; i<height;i++){
+        //printf("Row: %i\n", i);
+        for(int j = 0; j<width;j++){
             /*
-            printf("h: %i, w: %i\n", pngFileParam->height, pngFileParam->width);
+            printf("h: %i, w: %i\n", height, width);
             printf("%i, %i\n", i, j);
             fflush(stdout);
             printf("rawPoint %i\n", row_pointers[i][j]);
             */
-            thisRow[j*3+0] = row_pointers[i][j]/1000000;
-            thisRow[j*3+1] = row_pointers[i][j]/1000%1000;
-            thisRow[j*3+2] = row_pointers[i][j]%1000;
+            //printf("row_pointers_color %i\n", row_pointers[i][j]);
+            ptr = &(thisRow[j*3]);
+            //Can bitmask the alpha value but, if no background, just flattens
+            ptr[0] = (png_byte)floor(row_pointers[i][j]/1000000);
+            ptr[1] = (png_byte)floor(row_pointers[i][j]/1000%1000);
+            ptr[2] = (png_byte)floor(row_pointers[i][j]%1000);
+            //printf("r %i, g %i b%i\n", ptr[0], ptr[1], ptr[2]);
+            //thisRow[j*4+3] = (png_byte)row_pointers[i][j]%1000;
         }
         png_write_row(png_ptr, thisRow);
     }
@@ -202,6 +224,8 @@ int write_png_file(char* file_name, int **row_pointers, struct pngFile *pngFileP
     png_write_end(png_ptr, NULL);
     png_destroy_write_struct(&png_ptr, &info_ptr);
     fclose(fp);
+    free(thisRow);
+    //printf("before w: %i, h: %i\n", width, height);
     return 0;
 }
 

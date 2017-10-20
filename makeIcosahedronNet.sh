@@ -1,11 +1,8 @@
 echo "Starting to make Icosahedron net..."
 cd out/
-color=1 #1 for color, 0 for not
-if [ "$color" -eq "0" ]; then
-    mogrify  -trim +repage -transparent white -shave 1x1 -trim -format png -path ./png ./*.pgm
-else
-    mogrify  -trim +repage -transparent white -shave 1x1 -trim -format png -path ./png ./*.ppm
-fi
+color=0 #1 for color, 0 for not
+
+mogrify  -trim +repage -transparent white -shave 1x1 -trim -format png -path ./png ./*.png
 
 convert ./png/0.png  -quality 01 -flip ./png/rot/0.png
 convert ./png/4.png  -quality 01 -flip ./png/rot/4.png
@@ -63,7 +60,8 @@ convert bottom.png -quality 01 -gravity West -splice 100x0 -transparent white bo
 
 convert top.png middle.png -quality 01 -smush 0 -transparent white topMiddle.png
 
-convert topMiddle.png bottomExp.png -quality 01 -gravity West -smush 0 ../net.png
+#Don't want -quality 01 bc want compression for smaller file size, no more IO processing!
+convert topMiddle.png bottomExp.png   -gravity NorthWest -smush 0 ../net.png
 
 echo "DONE! Check net.png"
 

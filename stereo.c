@@ -4,28 +4,32 @@
 #include <stdbool.h>
 #include <math.h>
 #include <pthread.h>
-#include "RayPolygon.h"
+//Included in managePNG.h
+//#include "RayPolygon.h"
 #include "managePNG.h"
 #include "coords.c" //generated from icosahedron.py, etc
 
 //https://cocalc.com/projects/b0966444-8a50-4f2a-a0a7-5d5e6e261ea5/files/2017-06-21-221142.sagews
-void   vectorCross           ( Vector a, Vector b, Vector *c                                         );
-double vectorDot             ( Vector a, Vector b                                                    );
-void   pointSub              ( Point a, Point b, Vector *c                                           );
-double findT                 ( Point *verts, struct Polygon poly, struct Ray ray, int * i_s, Vector N);
-void   printVector           ( Vector v, char* name                                                  );
-int    maxN                  ( Vector N                                                              );
-int    abs                   ( int                                                                   );
-void   normalize             ( Vector                                                                );
-void   distPoints            ( Point *a, Point *b                                                    );
-void   project               ( Point *p, Vector N                                                    );
-void   newCoord              ( struct Polygon poly, Point *P, Vector N                               );
-int    findCLeftI            ( double C[][2], double CLeftI[][3]                                     );
-int    checkThatLeftInverse  ( double C[][2], double CleftI[][3]                                     );
-void   changeBasis           ( Point *a, double CLeftI[][3]                                          );
-void   findMinMax            ( double X, double Y, double *minMaxX, double *minMaxY                  );
-double findMaxZValueCoord    ( );
-void*   generateOutputImage  ( void* threadStructVoid);
+void   vectorCross          ( Vector a,            Vector b,            Vector *c                            ) ;
+double vectorDot            ( Vector a,            Vector b                                                  ) ;
+void   pointSub             ( Point a,             Point b,             Vector *c                            ) ;
+double findT                ( Point *verts,        struct Polygon poly, struct Ray ray,  int * i_s, Vector N ) ;
+void   printVector          ( Vector v,            char* name                                                ) ;
+int    maxN                 ( Vector N                                                                       ) ;
+int    abs                  ( int                                                                            ) ;
+void   normalize            ( Vector                                                                         ) ;
+void   distPoints           ( Point *a,            Point *b                                                  ) ;
+void   project              ( Point *p,            Vector N                                                  ) ;
+void   newCoord             ( struct Polygon poly, Point *P,            Vector N                             ) ;
+int    findCLeftI           ( double C[][2],       double CLeftI[][3]                                        ) ;
+int    checkThatLeftInverse ( double C[][2],       double CleftI[][3]                                        ) ;
+void   changeBasis          ( Point *a,            double CLeftI[][3]                                        ) ;
+void   findMinMax           ( double X,            double Y,            double *minMaxX, double *minMaxY     ) ;
+double findMaxZValueCoord   () ;
+void*  generateOutputImage  ( void* threadStructVoid                                                         ) ;
+void   runThreadSession(int startIndex, int threads_per_session, struct thread_in *threadStructs);
+void   printAndExit         ( const char* str                                                                ) ;
+void   pthread_printAndExit         ( const char* str                                                                ) ;
 
 //Important global vars to change functionality:
 int v            = 1; //How verbose
@@ -34,16 +38,7 @@ int hasColor     = 1;//0 for b/w (input pgm is only 1/0, 1 for color (input ppm 
 
 int numSteps     = 400; //Used for outline of image, 0 removes, greater then number, the darker the outline
 
-struct thread_in {
-    pthread_t TID;
-    png_bytep * imgArr;
-    struct outlineCoord *outlineArr;
-    int faceIndex;
-    Point *endPoint;
-    int ximg;
-    int yimg;
-    struct pngFile *pngFileParam;
-};
+int threads_per_session = 5;
 
 int main(int argc, char **argv){
     printf("**Starting stero.c**\n");
@@ -58,23 +53,25 @@ int main(int argc, char **argv){
     }
     //sed '2,$s/\s//g' simple.bpm |tr -d "\n" > test.smaller.pbm
     //and then go in and and new lines to the header
-    char inFileName[] = "libpngTests/test.png";
+    char inFileName[] = "cropped.png";
     if(read_png_file(inFileName, &readPngFile)!=0){
-        printf("Problem reading png file...exiting");
-        exit(1);
+        printAndExit("Problem reading png file...exiting");
         //TODO check RGBA
     }
     yimg = readPngFile.height;
     ximg = readPngFile.width;
+    printf("ximg: %i, yimg: %i\n", ximg, yimg);
 
     int mult = 100;
     //cat coords.c |awk -F, '{print $3}'|sort
     double maxZValue = 0;
     maxZValue = findMaxZValueCoord();
-    printf("Max ZValue: %f\n", maxZValue);
+    if(!v)printf("Max ZValue: %f\n", maxZValue);
 
     //Can change 0->1 so top of light isn't right in middle, untested
     Point endPoint = {ximg/2, yimg/2, ((maxZValue+0)*mult)};
+    if(!v)printVector(endPoint, "endPoint");
+    fflush(stdout);
     //Point endPoint   = {ximg/2, yimg/2, 2000};
 
     for(int i = 0; i<(numFaces*(numSides+1));i++){
@@ -95,8 +92,7 @@ int main(int argc, char **argv){
     struct thread_in *threadStructs = NULL;
     threadStructs = malloc(sizeof(struct thread_in)*numFaces);
     if(threadStructs == NULL){
-        printf("Couldn't malloc threadStructs");
-        exit(1);
+        printAndExit("Couldn't malloc threadStructs");
     }
     for(int i = 0; i<numFaces;i++){
         threadStructs[i].imgArr     = readPngFile.row_pointers;
@@ -104,32 +100,23 @@ int main(int argc, char **argv){
         threadStructs[i].endPoint   = &endPoint;
         threadStructs[i].ximg       = ximg;
         threadStructs[i].yimg       = yimg;
-        threadStructs[i].pngFileParam = &readPngFile;
-        int ret;
-        ret = pthread_create(&(threadStructs[i].TID),  NULL, generateOutputImage, &threadStructs[i]);
-        if(ret != 0){
-            printf("Couldn't create thread %i", i);
-            exit(1);
-        }
-        //TODO: put back for threading
-        int tret;
-        int error_code;
-        error_code = pthread_join(threadStructs[i].TID, (void **)&tret);
-        if(error_code != 0){
-            printf("Problem joining thread\n");
-            exit(1);
-        }
-        //Error in tret
-        printf("     %02d    RETURNED : %d\n", i, tret);
-        if(tret!=0){
-            printf("Not 0...exiting\n");
-            exit(1);
-        }
+        threadStructs[i].color_type = readPngFile.color_type;
+        threadStructs[i].bit_depth  = readPngFile.bit_depth;
     }
 
-    
-    for(int i = 0; i<numFaces;i++){
+    for(int tSession = 0; tSession<numFaces;tSession+=threads_per_session){
+        if(tSession + threads_per_session >= numFaces){
+            threads_per_session = numFaces - tSession;
+            printf("%i\n", numFaces - tSession);
+        }
+        runThreadSession(tSession, threads_per_session, threadStructs);
     }
+    //Since numFaces and threads_per_session are ints, int division floors correctly
+    /*
+    int tLeftOverStart = threads_per_session*(numFaces/threads_per_session);
+    runThreadSession(tLeftOverStart, (numFaces - tLeftOverStart), threadStructs);
+    */
+    printf("Done all threads\n");
     for(int y=0; y<readPngFile.height; y++){
         free(readPngFile.row_pointers[y]);
     }
@@ -139,32 +126,62 @@ int main(int argc, char **argv){
     return 0;
 }
 
+void runThreadSession(int startIndex, int threads_per_session, struct thread_in *threadStructs){
+    int ret;
+    printf("Starting tsession %i - %i\n", startIndex, startIndex+threads_per_session);
+    for(int i = startIndex; i<(startIndex+threads_per_session);i++){
+        printf("Creating thread %i\n", i);
+        ret = pthread_create(&(threadStructs[i].TID),  NULL, generateOutputImage, &(threadStructs[i]));
+        if(ret != 0){
+            printf("Couldn't create thread %i", i);
+            //Still fflush's so useful
+            printAndExit("Couldn't create thread");
+        }
+    }
+
+
+    for(int i = startIndex; i<(startIndex+threads_per_session);i++){
+        printf("Joining thread %i\n", i);
+        //NEEDS TO BE LONG, FORCED CASTED SO IF INT, OVERFLOWS!
+        long tret;
+        int error_code;
+        error_code = pthread_join(threadStructs[i].TID, (void **)&tret);
+        if(error_code != 0){
+            printAndExit("Problem joining thread\n");
+        }
+        //Error in tret
+        printf("     %02d    RETURNED : %ld\n", i, tret);
+        if(tret!=0){
+            printAndExit("Not 0...exiting\n");
+        }
+    }
+}
 
 
 void*   generateOutputImage   ( void* threadStructVoid){
-    png_bytep * imgArr   = ((struct thread_in*) threadStructVoid)->imgArr;
-    int faceIndex   = ((struct thread_in*) threadStructVoid)->faceIndex;
-    Point *endPoint = ((struct thread_in*) threadStructVoid)->endPoint;
-    int ximg        = ((struct thread_in*) threadStructVoid)->ximg;
-    int yimg        = ((struct thread_in*) threadStructVoid)->yimg;
-    struct pngFile *pngFileParam = ((struct thread_in*) threadStructVoid)->pngFileParam;
+    printf("Got to generateOutput\n");
+    png_bytep * imgArr  = ((struct thread_in*) threadStructVoid)->imgArr;
+    int faceIndex       = ((struct thread_in*) threadStructVoid)->faceIndex;
+    Point *endPoint     = ((struct thread_in*) threadStructVoid)->endPoint;
+    int ximg            = ((struct thread_in*) threadStructVoid)->ximg;
+    int yimg            = ((struct thread_in*) threadStructVoid)->yimg;
+    png_byte bit_depth  = ((struct thread_in*) threadStructVoid)->bit_depth;
+    png_byte color_type = ((struct thread_in*) threadStructVoid)->color_type;
 
-    int **outArr;
+    printf("ximg: %i, yimg: %i\n", ximg, yimg);
+    int **outArr = NULL;
     outArr = malloc(sizeof(int*)*yimg);
     if(outArr == NULL){
-        printf("Couldn't malloc outer of 2D array\n");
-        pthread_exit((void *)2);
+        pthread_printAndExit("Couldn't malloc outer of 2D array\n");
     }
     struct outlineCoord *outlineArr = malloc(sizeof(struct outlineCoord)*(numSides)*numSteps);
     if(outlineArr == NULL){
-        printf("COULDN'T MALLOC\n");
-        exit(1);
+        pthread_printAndExit("COULDN'T MALLOC\n");
     }
     for(int r = 0; r<yimg;r++){
        outArr[r] = malloc(sizeof(int)*ximg);
        if(outArr[r] == NULL){
-           printf("Couldn't malloc inner of 2D array\n");
-        pthread_exit((void *)2);
+           pthread_printAndExit("Couldn't malloc inner of 2D array\n");
        }
     }
     Vector N;
@@ -186,7 +203,7 @@ void*   generateOutputImage   ( void* threadStructVoid){
     if(hasColor == 0){
         strcat(fileName, ".pgm");
     }else{
-        strcat(fileName, ".ppm");
+        strcat(fileName, ".png");
     }
     printf("Face %02d/%d Start\n", faceIndex, numFaces-1);
 
@@ -246,12 +263,12 @@ void*   generateOutputImage   ( void* threadStructVoid){
 
     //Both runs findCLeftI and checks that is equal to 0
     if(findCLeftI(C, CLeftI) != 0){
-        pthread_exit((void *)2);
+        pthread_printAndExit("Couldn't find CLeftI");
     }
 
 
 
-    Point lightPoint = {*endPoint[0], *endPoint[1], *endPoint[2]};
+    Point lightPoint = {(*endPoint)[0], (*endPoint)[1], (*endPoint)[2]};
     if(!v)printVector(lightPoint, "lightPointBef");
     changeBasis(&lightPoint, CLeftI);
     if(!v)printVector(lightPoint, "lightPointAft");
@@ -316,23 +333,25 @@ void*   generateOutputImage   ( void* threadStructVoid){
             //outlineArr[outLineIndex].coordID = 1;
         }
     }
+    if(!v)printf("ximg: %i, yimg: %i\n", ximg, yimg);
     if(!v)printf("   minX: %f, minY: %f\n", minMaxX[0], minMaxY[0]);
-    if(minMaxX[1] - minMaxX[0] > ximg){
+    if(!v)printf("   maxX: %f, maxY: %f\n", minMaxX[1], minMaxY[1]);
+    if((minMaxX[1] - minMaxX[0]) > ximg){
         printf("WILL OVERFLOW IN X DIREACTION\n");
     }
-    if(minMaxY[1] - minMaxY[0] > yimg){
+    if((minMaxY[1] - minMaxY[0] ) > yimg){
         printf("WILL OVERFLOW IN Y DIREACTION\n");
     }
 
     for(int i = 0; i<(numSides*numSteps);i++){
         double newX, newY; //X and Y which are min/maxed so > 0
-        newX =  round(outlineArr[i].X-minMaxX[0]);
-        newY =  round(outlineArr[i].Y-minMaxY[0]);
+        newX =  round(outlineArr[i].X-minMaxX[0])+1;
+        newY =  round(outlineArr[i].Y-minMaxY[0])+1;
         if( newX>=ximg||newX<0||
             newY>=yimg||newY<0){
             //If this happens, is not going to show whole thing
             printf("outline extends past outArr! %i\n", faceIndex );
-            pthread_exit((void *)2);
+            pthread_printAndExit("");
         }
         /* If want to debug which face is on (and what polarity), set coordID
          * above to be something like ((i*1000+9)+(i+1)%poly.n) to give xxx9yyy
@@ -342,7 +361,7 @@ void*   generateOutputImage   ( void* threadStructVoid){
     }
     double finalX, finalY;
     int   color = 9999; //from charColor with atoi
-    png_byte *pixel;
+    png_byte *pixel = NULL;
     for(int i = 0; i<yimg;i++){
         for(int j = 0; j<ximg;j++){
             int X = 0;
@@ -351,6 +370,8 @@ void*   generateOutputImage   ( void* threadStructVoid){
                 //Makes RRRGGGBBB
                 //printf("%i, %i\n", i, j);
                 pixel = &(imgArr[i][j*3]);
+                //RGBA
+                //From makeImg, should only be RGB not RGBA. Pretty sure will be 8 bit TOOD
                 color = pixel[0]*1000000+
                         pixel[1]*1000+
                         pixel[2];
@@ -407,8 +428,8 @@ void*   generateOutputImage   ( void* threadStructVoid){
                         if(!v)printf("-");
                     }
                     }
-            finalX = X-minMaxX[0];
-            finalY = Y-minMaxY[0];
+            finalX = round(X-minMaxX[0])+1;
+            finalY = round(Y-minMaxY[0])+1;
             if(v==5)printf("FINAL COORD: (%f, %f)\n", finalX, finalY);
             if(!(finalX==0 && finalY==0)){
                 if(finalX>=0 && finalX< ximg  && finalY>=0 && finalY<yimg){
@@ -420,7 +441,7 @@ void*   generateOutputImage   ( void* threadStructVoid){
                     //outArr[(int)(round((ray.P[1]+200)*1.5+sizeOfPaperY*.5)*(sizeOfPaperX)+(int)round(ray.P[0]+sizeOfPaperX*.5))] = 0;
                     //outArr[(int)(round(ray.P[1]*3.5-150)*(sizeOfPaperX)+(int)round(ray.P[0]*3.5-400))] = 0;
                     if(hasColor == 0){
-                        outArr[(int)(finalY)][(int)(finalX)] = 0;
+                        outArr[(int)(finalY)][(int)(finalX)] = 23;
                     }else{
                         outArr[(int)(finalY)][(int)(finalX)] = color;
                     }
@@ -436,27 +457,13 @@ void*   generateOutputImage   ( void* threadStructVoid){
         if(!v)printf("---\n");
     }
     if(v!=4){
-        for(int j = 0; j<yimg;j++){
-            for(int i = 0; i<ximg;i++){
-                if(i == ximg/2 || j == yimg/2){
-                    //TODO
-                    //fprintf(writeFile, "1 ");
-                }else{
-                    /* printf("i: %i, j: %i, maxOutSide: %i\n", i, j, maxOutSide); */
-                    //printf("%i ", outArr[i*(maxOutSide)+j]);
-                    //fprintf(writeFile, "%i ", outArr[j*(sizeOfPaperX)+i]);
-                    /* fflush(stdout); */
-                }
-
-                if(hasColor == 0){
-                    //fprintf(writeFile, "%i ", outArr[j][i]);
-                }else{
-                    write_png_file(fileName, outArr, pngFileParam);
-                }
-            }
-            //fprintf(writeFile, "\n");
+        if(write_png_file(fileName, outArr, round(minMaxX[1] - minMaxX[0])+10,
+                    round(minMaxY[1] - minMaxY[0])+10,  bit_depth,
+                    color_type)!=0){
+            pthread_printAndExit("Problem writing png file");
         }
     }
+
     for(int r = 0; r<yimg;r++){
         free(outArr[r]);
     }
@@ -717,4 +724,16 @@ double findMaxZValueCoord(){
         }
     }
     return maxZValue;
+}
+
+void printAndExit(const char* str){
+    printf("%s", str);
+    fflush(stdout);
+    exit(1);
+}
+void pthread_printAndExit(const char* str){
+    printf("%s", str);
+    fflush(stderr);
+    fflush(stdout);
+    pthread_exit((void *)2);
 }
