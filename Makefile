@@ -1,4 +1,4 @@
-CC = clang
+CC = gcc
 CFLAGS = -O3 -ggdb -Wall -Wvla -lm -pthread  #-fPIC -fsanitize=memory -fPIE -pie -fsanitize-memory-track-origins #fPIC for sanitize=memory
 #export MSAN_SYMBOLIZER_PATH="/usr/lib/llvm-3.8/bin/llvm-symbolizer" Not in bin bc not unadorned https://stackoverflow.com/questions/38079761/why-does-asan-symbolizer-path-no-longer-work-with-version-adorned-binaries
 

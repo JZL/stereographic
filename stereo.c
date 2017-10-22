@@ -36,9 +36,9 @@ int v            = 1; //How verbose
 
 int hasColor     = 1;//0 for b/w (input pgm is only 1/0, 1 for color (input ppm has 9 chars p/ RRRGGGBBB)
 
-int numSteps     = 400; //Used for outline of image, 0 removes, greater then number, the darker the outline
+int numSteps     = 2000; //Used for outline of image, 0 removes, greater then number, the darker the outline
 
-int threads_per_session = 5;
+int threads_per_session = 12;
 
 int main(int argc, char **argv){
     printf("**Starting stero.c**\n");
@@ -62,16 +62,15 @@ int main(int argc, char **argv){
     ximg = readPngFile.width;
     printf("ximg: %i, yimg: %i\n", ximg, yimg);
 
-    int mult = 100;
+    int mult = ximg/6;
     //cat coords.c |awk -F, '{print $3}'|sort
     double maxZValue = 0;
     maxZValue = findMaxZValueCoord();
     if(!v)printf("Max ZValue: %f\n", maxZValue);
 
     //Can change 0->1 so top of light isn't right in middle, untested
-    Point endPoint = {ximg/2, yimg/2, ((maxZValue+0)*mult)};
+    Point endPoint = {ximg/2, yimg/2, ((maxZValue)*mult)};
     if(!v)printVector(endPoint, "endPoint");
-    fflush(stdout);
     //Point endPoint   = {ximg/2, yimg/2, 2000};
 
     for(int i = 0; i<(numFaces*(numSides+1));i++){
@@ -169,20 +168,9 @@ void*   generateOutputImage   ( void* threadStructVoid){
     png_byte color_type = ((struct thread_in*) threadStructVoid)->color_type;
 
     printf("ximg: %i, yimg: %i\n", ximg, yimg);
-    int **outArr = NULL;
-    outArr = malloc(sizeof(int*)*yimg);
-    if(outArr == NULL){
-        pthread_printAndExit("Couldn't malloc outer of 2D array\n");
-    }
     struct outlineCoord *outlineArr = malloc(sizeof(struct outlineCoord)*(numSides)*numSteps);
     if(outlineArr == NULL){
         pthread_printAndExit("COULDN'T MALLOC\n");
-    }
-    for(int r = 0; r<yimg;r++){
-       outArr[r] = malloc(sizeof(int)*ximg);
-       if(outArr[r] == NULL){
-           pthread_printAndExit("Couldn't malloc inner of 2D array\n");
-       }
     }
     Vector N;
     double minMaxX[2];
@@ -211,18 +199,6 @@ void*   generateOutputImage   ( void* threadStructVoid){
     //can't be i && j == 0 bc the value at [i][j] might not be == 1
     //Need duplicate to do minMax & scale calculations on (allows to not have negative coordinate values)
     //TODO could just do the minMax for the surrounding shape, if is less than that, won't intersect
-    for(int i = 0; i<yimg;i++){
-        for(int j = 0; j<ximg;j++){
-            if(hasColor == 0){
-                //In pgm, maxValue(=2 in this case) is white
-                outArr[i][j] = 2;
-            }else{
-                //In ppm, white = 255 255 255 = 255255255when I compress together
-                //Could be just 0 but the compiler will fix and this reminds me
-                outArr[i][j] = 255255255;
-            }
-        }
-    }
 
 
 
@@ -253,13 +229,13 @@ void*   generateOutputImage   ( void* threadStructVoid){
 
     double C[3][2];
     double CLeftI[3][3];
-    C[0][0] =v0v1[0];
-    C[1][0] =v0v1[1];
-    C[2][0] =v0v1[2];
+    C[0][0] = v0v1[0];
+    C[1][0] = v0v1[1];
+    C[2][0] = v0v1[2];
 
-    C[0][1] =secondAxis[0];
-    C[1][1] =secondAxis[1];
-    C[2][1] =secondAxis[2];
+    C[0][1] = secondAxis[0];
+    C[1][1] = secondAxis[1];
+    C[2][1] = secondAxis[2];
 
     //Both runs findCLeftI and checks that is equal to 0
     if(findCLeftI(C, CLeftI) != 0){
@@ -333,22 +309,50 @@ void*   generateOutputImage   ( void* threadStructVoid){
             //outlineArr[outLineIndex].coordID = 1;
         }
     }
-    if(!v)printf("ximg: %i, yimg: %i\n", ximg, yimg);
-    if(!v)printf("   minX: %f, minY: %f\n", minMaxX[0], minMaxY[0]);
-    if(!v)printf("   maxX: %f, maxY: %f\n", minMaxX[1], minMaxY[1]);
-    if((minMaxX[1] - minMaxX[0]) > ximg){
-        printf("WILL OVERFLOW IN X DIREACTION\n");
+    int minWidth[2] = {ceil(minMaxX[1] - minMaxX[0])+10,
+                       ceil(minMaxY[1] - minMaxY[0])+10};
+    if(!v)printf("ximg: %i, yimg: %i\n",              ximg,        yimg);
+    if(!v)printf("   minWidthX: %i, minWidthY: %i\n", minWidth[0], minWidth[1]);
+    if(!v)printf("   minX: %f, minY: %f\n",           minMaxX[0],  minMaxY[0]);
+    if(!v)printf("   maxX: %f, maxY: %f\n",           minMaxX[1],  minMaxY[1]);
+    if(minWidth[0] > ximg){
+        pthread_printAndExit("WILL OVERFLOW IN X DIREACTION\n");
     }
-    if((minMaxY[1] - minMaxY[0] ) > yimg){
-        printf("WILL OVERFLOW IN Y DIREACTION\n");
+    if(minWidth[1] > yimg){
+        pthread_printAndExit("WILL OVERFLOW IN Y DIREACTION\n");
     }
 
+    int **outArr = NULL;
+    //Add a 10 bucket buffer for round overflow
+    outArr = malloc(sizeof(int*)*minWidth[1]);
+    if(outArr == NULL){
+        pthread_printAndExit("Couldn't malloc outer of 2D array\n");
+    }
+    for(int r = 0; r<minWidth[1];r++){
+        //Add a 10 bucket buffer for round overflow
+       outArr[r] = malloc(sizeof(int)*minWidth[0]);
+       if(outArr[r] == NULL){
+           pthread_printAndExit("Couldn't malloc inner of 2D array\n");
+       }
+    }
+    for(int i = 0; i<minWidth[1];i++){
+        for(int j = 0; j<minWidth[0];j++){
+            if(hasColor == 0){
+                //In pgm, maxValue(=2 in this case) is white
+                outArr[i][j] = 2;
+            }else{
+                //In ppm, white = 255 255 255 = 255255255when I compress together
+                //Could be just 0 but the compiler will fix and this reminds me
+                outArr[i][j] = 255255255;
+            }
+        }
+    }
     for(int i = 0; i<(numSides*numSteps);i++){
         double newX, newY; //X and Y which are min/maxed so > 0
         newX =  round(outlineArr[i].X-minMaxX[0])+1;
         newY =  round(outlineArr[i].Y-minMaxY[0])+1;
-        if( newX>=ximg||newX<0||
-            newY>=yimg||newY<0){
+        if( newX>=minWidth[0]||newX<0||
+            newY>=minWidth[1]||newY<0){
             //If this happens, is not going to show whole thing
             printf("outline extends past outArr! %i\n", faceIndex );
             pthread_printAndExit("");
@@ -380,59 +384,59 @@ void*   generateOutputImage   ( void* threadStructVoid){
                 }
             }
             if((hasColor == 1 && color != 255255255)){
-                    //Is white so skip
-                    ray.O[0] = j;//x
-                    ray.O[1] = i;//y
-                    ray.O[2] = 0;//z
+                //Is white so skip
+                ray.O[0] = j;//x
+                ray.O[1] = i;//y
+                ray.O[2] = 0;//z
 
-                    pointSub(ray.O, *endPoint, &ray.D);
-                    if(!v)printf("rayDlengthB: %f\n", (ray.D[0]*ray.D[0]+ray.D[1]*ray.D[1]+ray.D[2]*ray.D[2]));
-                    normalize(ray.D);
-                    if(!v)printf("rayDlengthA: %f\n", (ray.D[0]*ray.D[0]+ray.D[1]*ray.D[1]+ray.D[2]*ray.D[2]));
-                    if(!v){
+                pointSub(ray.O, *endPoint, &ray.D);
+                if(!v)printf("rayDlengthB: %f\n", (ray.D[0]*ray.D[0]+ray.D[1]*ray.D[1]+ray.D[2]*ray.D[2]));
+                normalize(ray.D);
+                if(!v)printf("rayDlengthA: %f\n", (ray.D[0]*ray.D[0]+ray.D[1]*ray.D[1]+ray.D[2]*ray.D[2]));
+                if(!v){
                     printVector(ray.O, "O  ");
                     printVector(*endPoint, "End");
                     printVector(ray.D, "D  ");
-                    }
+                }
 
-                    t = findT(verts, poly, ray, i_s, N);
-                    if(!v)printf("t: %f\n", t);
-                    if(t<=0){
+                t = findT(verts, poly, ray, i_s, N);
+                if(!v)printf("t: %f\n", t);
+                if(t<=0){
                     //either error or intersection behind origin, reject
-                        if(!v)printf("t<=0\n");
-                        continue;
-                    }
-                    if(!v)printf("i_1: %i, i_2:%i\n", i_s[0], i_s[1]);
+                    if(!v)printf("t<=0\n");
+                    continue;
+                }
+                if(!v)printf("i_1: %i, i_2:%i\n", i_s[0], i_s[1]);
 
-                    intersects = intersect(&poly, &ray, t, i_s[0], i_s[1], v);
+                intersects = intersect(&poly, &ray, t, i_s[0], i_s[1], v);
 
-                    if(!v){ printVector(ray.P, "rayPB");}
-                    /*
-                    if(v==4){
-                        fprintf(writeFile, "%f,%f,%f\n", ray.P[0], ray.P[1], ray.P[2] );
-                    }
-                    */
-                    //distPoints(&(verts[0]), &ray.P);
-                    //newCoord(poly, &ray.P, N);
-                    //TODO move to only if intersects
-                    changeBasis(&ray.P, CLeftI);
-                    if(!v) printVector(ray.P, "rayPA");
-                    if(!v) printf(".5intersects? %d\n", intersects);
-                    if(!v) printVector(ray.P, "rayPAfterAdd");
-                    if(intersects == 1){
-                        if(!v)printf("=");
-                        X = ray.P[0];
-                        Y = ray.P[1];
-                    }else{
-                        //Already x=y=0. there will be an closed spot at 0,0 but, otherwise, need to store ximg*yimg*sizeof(char OR int) extra bytes to say if intersects
-                        if(!v)printf("-");
-                    }
-                    }
+                if(!v){ printVector(ray.P, "rayPB");}
+                /*
+                   if(v==4){
+                   fprintf(writeFile, "%f,%f,%f\n", ray.P[0], ray.P[1], ray.P[2] );
+                   }
+                   */
+                //distPoints(&(verts[0]), &ray.P);
+                //newCoord(poly, &ray.P, N);
+                //TODO move to only if intersects
+                changeBasis(&ray.P, CLeftI);
+                if(!v) printVector(ray.P, "rayPA");
+                if(!v) printf(".5intersects? %d\n", intersects);
+                if(!v) printVector(ray.P, "rayPAfterAdd");
+                if(intersects == 1){
+                    if(!v)printf("=");
+                    X = ray.P[0];
+                    Y = ray.P[1];
+                }else{
+                    //Already x=y=0. there will be an closed spot at 0,0 but, otherwise, need to store ximg*yimg*sizeof(char OR int) extra bytes to say if intersects
+                    if(!v)printf("-");
+                }
+            }
             finalX = round(X-minMaxX[0])+1;
             finalY = round(Y-minMaxY[0])+1;
-            if(v==5)printf("FINAL COORD: (%f, %f)\n", finalX, finalY);
+            if(!v)printf("FINAL COORD: (%f, %f)\n", finalX, finalY);
             if(!(finalX==0 && finalY==0)){
-                if(finalX>=0 && finalX< ximg  && finalY>=0 && finalY<yimg){
+                if(finalX>=0 && finalX< minWidth[0]  && finalY>=0 && finalY<minWidth[1]){
                     //outArr[(int)(ray.P[1])*(maxOutSide)+(int)(ray.P[0])] = 1;
                     /* if(!v) printf("coords [%i, %i]\n", (int)(round(ray.P[1]+sizeOfPaperY*.5)),(int)round(ray.P[0]+sizeOfPaperX*.5)); */
                     /* outArr[(int)round(ray.P[1]+maxOutSide*.5)*(maxOutSide)+(int)round(ray.P[0]+maxOutSide*.5)] = 0; */
@@ -457,14 +461,14 @@ void*   generateOutputImage   ( void* threadStructVoid){
         if(!v)printf("---\n");
     }
     if(v!=4){
-        if(write_png_file(fileName, outArr, round(minMaxX[1] - minMaxX[0])+10,
-                    round(minMaxY[1] - minMaxY[0])+10,  bit_depth,
+        if(write_png_file(fileName, outArr, minWidth[0],
+                    minWidth[1],  bit_depth,
                     color_type)!=0){
             pthread_printAndExit("Problem writing png file");
         }
     }
 
-    for(int r = 0; r<yimg;r++){
+    for(int r = 0; r<minWidth[1];r++){
         free(outArr[r]);
     }
     free(outArr);

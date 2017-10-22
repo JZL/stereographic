@@ -61,8 +61,9 @@ convert bottom.png -quality 01 -gravity West -splice 100x0 -transparent white bo
 convert top.png middle.png -quality 01 -smush 0 -transparent white topMiddle.png
 
 #Don't want -quality 01 bc want compression for smaller file size, no more IO processing!
-convert topMiddle.png bottomExp.png   -gravity NorthWest -smush 0 ../net.png
+convert topMiddle.png bottomExp.png   -gravity NorthEast -smush 0 ../net.png
 
+ls -lah ../net*.png
 echo "DONE! Check net.png"
 
 #convert \
