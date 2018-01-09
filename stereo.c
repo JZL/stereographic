@@ -62,7 +62,8 @@ int main(int argc, char **argv){
     ximg = readPngFile.width;
     printf("ximg: %i, yimg: %i\n", ximg, yimg);
 
-    int mult = ximg/6;
+    //Used for tuning the size of the image (how much is in the critical bottom face)
+    int mult = ximg/15;
     //cat coords.c |awk -F, '{print $3}'|sort
     double maxZValue = 0;
     maxZValue = findMaxZValueCoord();
