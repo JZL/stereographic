@@ -1,3 +1,4 @@
+#include <stdbool.h>
 /* Added to make it compile */
 typedef double Point[3];
 typedef double Vector[3];
@@ -13,7 +14,6 @@ struct Polygon {
         bool   interpolate;
         Point  *V;
         double *coordIds;
-
 };
 
 struct coord2D {
@@ -26,5 +26,4 @@ struct outlineCoord {
         double Y;
         int    coordID;
 };
-
 bool intersect(struct Polygon *poly, struct Ray *ray, float t, int i1, int i2, int v);
